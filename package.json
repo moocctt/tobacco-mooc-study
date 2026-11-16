@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "test": "node tests/runner.js",
-    "test:unit": "node tests/runner.js panel engine guard quota",
+    "test:unit": "node tests/runner.js panel engine guard quota dark",
     "test:live": "node tests/live.test.js",
     "check": "node --check userscript/tobacco-mooc-unattended.user.js && node --check userscript/tobacco-mooc-fast.user.js",
     "changelog": "node scripts/changelog.js",

@@ -31,6 +31,7 @@ const panelSource = (kind) => block(kind, "  // src/panel.js", "  // src/");
 const engineSource = (kind) => block(kind, "  // src/token.js", "  // src/panel.js");
 const guardSource = (kind) => block(kind, "  // src/guard.js", "  // src/");
 const lockSource = (kind) => block(kind, "  // src/lock.js", "  // src/");
+const darkSource = (kind) => block(kind, "  // src/dark.js", "  // src/");
 
 const noop = () => {};
 
@@ -86,9 +87,30 @@ function loadLock(kind) {
   return compile(lockSource(kind), [], "createLock")();
 }
 
+function loadDark(kind, g) {
+  g = g || {};
+  g.location = g.location || { hash: "" };
+  function makeRoot() {
+    return { getAttribute: () => null, setAttribute() {}, removeAttribute() {}, hasAttribute: () => false, appendChild() {} };
+  }
+  g.document = g.document || { documentElement: makeRoot(), getElementById: () => null, createElement: () => ({ style: {}, textContent: "", setAttribute() {}, appendChild() {} }) };
+  g.window = g.window || { addEventListener: noop };
+  g.setInterval = g.setInterval || (() => 0);
+  g.clearTimeout = g.clearTimeout || noop;
+  g.setTimeout = g.setTimeout || (() => 0);
+  g.console = g.console || { log: noop };
+  g.Image = g.Image || function () {};
+  const params = ["document", "window", "location", "setInterval", "clearTimeout", "setTimeout", "console", "Image", "URL", "MutationObserver"];
+  g.URL = g.URL || URL;
+  g.MutationObserver = g.MutationObserver || function () { this.observe = noop; };
+  const factory = compile(darkSource(kind), params, "createDarkMode");
+  const createDarkMode = factory(...params.map((k) => g[k]));
+  return createDarkMode({ gm: g.gm || { getValue: () => undefined, setValue: noop }, log: g.log || noop, prefix: g.prefix || "uf" });
+}
+
 module.exports = {
   ROOT, FILES, KINDS, read, slice, block,
-  panelSource, engineSource, guardSource, lockSource,
-  loadEngine, loadPanelFactory, loadGuard, loadLock,
+  panelSource, engineSource, guardSource, lockSource, darkSource,
+  loadEngine, loadPanelFactory, loadGuard, loadLock, loadDark,
   engineGlobals, ENGINE_PARAMS
 };

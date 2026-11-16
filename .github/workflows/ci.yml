@@ -32,5 +32,5 @@ jobs:
       - name: 语法检查
         run: npm run check
 
-      - name: 单元测试（面板 / 引擎 / 互斥 / 配额）
+      - name: 单元测试（面板 / 引擎 / 互斥 / 配额 / 暗黑）
         run: npm run test:unit

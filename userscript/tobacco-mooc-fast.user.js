@@ -868,6 +868,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     lockOwner,
     currentBid: currentBid2,
     gm: gm2,
+    isDark,
     onStart
   }) {
     let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, metaEl, subEl, headPct;
@@ -1109,7 +1110,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           }
         }
         const theme = headerColor(fallbackColor);
-        const dark = pageIsDark();
+        const dark = isDark ? !!isDark() : pageIsDark();
         const key = `${theme.bg}|${theme.light ? "L" : "D"}|${dark ? "D" : "L"}`;
         if (key === last) return;
         last = key;
@@ -1132,7 +1133,230 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     return { log, ui, mount, setCollapsed, destroy, getBox: () => box };
   }
 
-  // src/routes.js
+  // src/dark.js
+  function createDarkMode({ gm: gm2, log, prefix }) {
+    const ATTR = "mooc-dark";
+    const STYLE_ID = `${prefix}-dark-style`;
+    const DEF_FROM = 19;
+    const DEF_TO = 7;
+    // 考试/答题/登录页不做配色改写: 题面图片、警示色、验证码都不能被滤镜影响
+    const SKIP_RE = /#\/(?:exam|test|quiz|login|register|forget|auth)\b/i;
+    const MODES = ["auto", "on", "off"];
+    // 页面骨架: 顶栏、内容区、页脚、右侧工具条、弹窗。都已确认内部没有 fixed 子元素,
+    // 所以可以对它们整体加滤镜而不会破坏定位。
+    const HEADER = "#content > div > .header";
+    // 顶栏不从整体反相: 品牌绿被反相后会变成亮青色, 与暗色页面不协调。
+    // 单独给它一个压暗的深绿底和浅色文字, 内部导航/搜索也一起校准。
+    const ROOTS = [
+      "#content > div > .content",
+      "#content > div > .hide_by_default",
+      ".sidebar-toolbar",
+      ".dialog-layout"
+    ];
+    // 亮度阈值: 高于它的是「浅色装饰底图」(说明/纹理/边框), 让它跟着整体反转变暗;
+    // 低于它的是「照片」, 二次反转还原成本来的颜色。
+    const PHOTO_MIN_L = 0.66;
+    function mode() {
+      const m = gm2.getValue("darkMode");
+      return MODES.indexOf(m) >= 0 ? m : "auto";
+    }
+    function setMode(m) {
+      gm2.setValue("darkMode", MODES.indexOf(m) >= 0 ? m : "auto");
+    }
+    function clampHour(raw, def) {
+      const n = Number(raw);
+      return Number.isInteger(n) && n >= 0 && n <= 23 ? n : def;
+    }
+    function hours() {
+      return { from: clampHour(gm2.getValue("darkFrom"), DEF_FROM), to: clampHour(gm2.getValue("darkTo"), DEF_TO) };
+    }
+    function setHour(which, value) {
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 0 || n > 23) return false;
+      gm2.setValue(which === "to" ? "darkTo" : "darkFrom", n);
+      return true;
+    }
+    function isDarkNow(date) {
+      const m = mode();
+      if (m === "on") return true;
+      if (m === "off") return false;
+      const { from, to } = hours();
+      const h = (date || /* @__PURE__ */ new Date()).getHours();
+      if (from === to) return h >= from;
+      // 跨午夜: from=19 to=7 时 19..23 与 0..6 都算暗
+      return from < to ? h >= from && h < to : h >= from || h < to;
+    }
+    function modeLabel() {
+      const m = mode();
+      if (m === "on") return "\u5E38\u4EAE";
+      if (m === "off") return "\u5173\u95ED";
+      const { from, to } = hours();
+      return `\u81EA\u52A8 ${from}\u70B9-${to}\u70B9`;
+    }
+    function shouldStyle() {
+      try {
+        return !SKIP_RE.test(location.hash || "");
+      } catch {
+        return true;
+      }
+    }
+    function css() {
+      const A = `html[${ATTR}="1"]`;
+      const R = ROOTS.join(",");
+      const byMedia = ["img", "picture", "video", "canvas", "iframe"]
+        .map((tag) => ROOTS.map((s) => `${s} ${tag}`).join(","))
+        .join(",");
+      return [
+        `${A}{background:#0f1216!important;color-scheme:dark}`,
+        `${A} body{background:#0f1216!important}`,
+        `${A} #content{background:#0f1216!important}`,
+        // 顶栏: 不做反相, 用压暗的品牌绿底 + 浅色文字
+        `${A} ${HEADER}{background:#0b2419!important;filter:none!important;border-bottom:1px solid rgba(255,255,255,.08)}`,
+        `${A} ${HEADER} *{color:#e6efe9!important}`,
+        `${A} ${HEADER} input,${A} ${HEADER} textarea{background:rgba(255,255,255,.08)!important;color:#e6efe9!important;border-color:rgba(255,255,255,.16)!important}`,
+        `${A} ${HEADER} input::placeholder{color:rgba(230,239,233,.5)!important}`,
+        // 整体反转: 浅底变深底, 深字变浅字, 一次覆盖整站
+        `${A} ${R}{filter:invert(1) hue-rotate(180deg)}`,
+        // 图片/视频再反转一次, 保持原本色彩
+        `${A} ${byMedia}{filter:invert(1) hue-rotate(180deg)}`,
+        // 照片类背景改成伪元素承载并单独反转; 浅色装饰底图留给外层滤镜去变暗
+        `${A} [data-mooc-bg]{background-image:none!important;isolation:isolate}`,
+        `${A} [data-mooc-bg]::before{content:"";position:absolute;inset:0;z-index:-1;background-image:var(--mooc-bg);background-size:var(--mooc-bg-size,auto);background-position:var(--mooc-bg-pos,0 0);background-repeat:var(--mooc-bg-repeat,repeat);filter:invert(1) hue-rotate(180deg);pointer-events:none}`,
+        `${A} [data-mooc-static]{position:relative}`,
+        `${A} ::selection{background:#2f5ea8;color:#fff}`,
+        `${A} ::-webkit-scrollbar{width:10px;height:10px}`,
+        `${A} ::-webkit-scrollbar-thumb{background:#39414b;border-radius:5px}`,
+        `${A} ::-webkit-scrollbar-thumb:hover{background:#4a5461}`,
+        `${A} ::-webkit-scrollbar-track{background:#0f1216}`
+      ].join("\n");
+    }
+    function imageLuma(url) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const abs = String(url);
+        // 同源图片带上 crossOrigin 会被浏览器当成 CORS 请求而失败, 只有跨源才需要
+        try {
+          if (new URL(abs, location.href).host !== location.host) img.crossOrigin = "anonymous";
+        } catch {
+        }
+        img.onload = () => {
+          try {
+            const c = document.createElement("canvas");
+            c.width = 20;
+            c.height = 20;
+            const ctx = c.getContext("2d");
+            ctx.drawImage(img, 0, 0, 20, 20);
+            const d = ctx.getImageData(0, 0, 20, 20).data;
+            let sum = 0;
+            for (let i = 0; i < d.length; i += 4) sum += (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+            resolve(sum / (d.length / 4));
+          } catch {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = abs;
+      });
+    }
+    let adapting = false;
+    async function adaptBackgrounds() {
+      if (adapting) return 0;
+      adapting = true;
+      let n = 0;
+      try {
+        const roots = Array.from(document.querySelectorAll(ROOTS.join(",")));
+        const cands = [];
+        for (const root of roots) {
+          for (const el of [root, ...root.querySelectorAll("*")]) {
+            if (el.hasAttribute("data-mooc-bg") || el.hasAttribute("data-mooc-nobg") || !el.style || el.id === `${prefix}-box`) continue;
+            const cs = getComputedStyle(el);
+            const bi = cs.backgroundImage;
+            if (!bi || bi.indexOf("url(") !== 0 || bi.indexOf("),") >= 0) continue;
+            const m = bi.match(/url\(["']?([^"')]+)["']?\)/);
+            if (!m) continue;
+            cands.push([el, bi, cs, m[1]]);
+          }
+        }
+        for (const [el, bi, cs, url] of cands) {
+          if (!el.isConnected) continue;
+          const luma = await imageLuma(url);
+          // 取不到亮度就当作照片处理: 还原成本色比整块变反色更不容易难看
+          if (luma !== null && luma > PHOTO_MIN_L) {
+            el.setAttribute("data-mooc-nobg", "1");
+            continue;
+          }
+          el.setAttribute("data-mooc-bg", "1");
+          if (cs.position === "static") el.setAttribute("data-mooc-static", "1");
+          el.style.setProperty("--mooc-bg", bi);
+          el.style.setProperty("--mooc-bg-size", cs.backgroundSize);
+          el.style.setProperty("--mooc-bg-pos", cs.backgroundPosition);
+          el.style.setProperty("--mooc-bg-repeat", cs.backgroundRepeat);
+          n++;
+        }
+      } finally {
+        adapting = false;
+      }
+      return n;
+    }
+    function apply() {
+      const root = document.documentElement;
+      if (!root) return false;
+      const on = isDarkNow() && shouldStyle();
+      if (on) {
+        if (root.getAttribute(ATTR) !== "1") root.setAttribute(ATTR, "1");
+        if (!document.getElementById(STYLE_ID)) {
+          const st = document.createElement("style");
+          st.id = STYLE_ID;
+          st.textContent = css();
+          root.appendChild(st);
+        }
+        adaptBackgrounds();
+      } else {
+        if (root.hasAttribute(ATTR)) root.removeAttribute(ATTR);
+        const st = document.getElementById(STYLE_ID);
+        if (st && st.remove) st.remove();
+      }
+      return on;
+    }
+    function start() {
+      let last = null;
+      let timer = 0;
+      const relayout = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => adaptBackgrounds(), 400);
+      };
+      const tick = () => {
+        const on = apply();
+        if (on !== last) {
+          last = on;
+          log(`[\u6697\u9ED1] ${on ? "\u5DF2\u5F00\u542F" : "\u5DF2\u5173\u95ED"} (${modeLabel()})`);
+        }
+      };
+      tick();
+      setInterval(tick, 3e4);
+      window.addEventListener("hashchange", () => {
+        tick();
+        relayout();
+      });
+      // 首页/课程页都是异步渲染, 新插入的节点要补做背景改写
+      try {
+        const ob = new MutationObserver((records) => {
+          if (!document.documentElement.hasAttribute(ATTR)) return;
+          for (const r of records) if (r.addedNodes && r.addedNodes.length) {
+            relayout();
+            return;
+          }
+        });
+        const host = document.body || document.documentElement;
+        if (host) ob.observe(host, { childList: true, subtree: true });
+      } catch {
+      }
+      return tick;
+    }
+    return { mode, setMode, setHour, modeLabel, hours, isDarkNow, apply, start, shouldStyle, adaptBackgrounds };
+  }
+
+// src/routes.js
   function currentBidFromHash(hash) {
     try {
       const h = decodeURIComponent(hash || "");
@@ -1168,6 +1392,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       }
     }
   };
+  var dark = createDarkMode({ gm, log: (m) => panel.log(m), prefix: "uf" });
   var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null } };
   var hunter = createTokenHunter({ log: (m) => panel.log(m) }); // panel.log lazy ref: panel exists by boot time, so storage-restored token shows in panel too
   var api = createApi({ hunter, gm, log: (m) => panel.log(m) });
@@ -1205,6 +1430,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     lockOwner: () => lock.lockOwner() || (guard.held(INSTANCE) ? "\u53E6\u4E00\u6807\u7B7E\u9875" : ""),
     currentBid,
     gm,
+    isDark: () => dark.isDarkNow(),
     onStart: () => {
       if (state.running) {
         state.stopFlag = true;
@@ -1233,7 +1459,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   hunter.installHooks({});
   (function boot() {
     hunter.tokenFromStorage();
-    const mountPanel = () => { if (!isAuthPage(location.hash)) panel.mount(); };
+    const mountPanel = () => { if (!isAuthPage(location.hash)) panel.mount(); dark.start(); };
     if (document.documentElement) mountPanel();
     else document.addEventListener("DOMContentLoaded", mountPanel, { once: true });
     window.addEventListener("hashchange", () => {
@@ -1291,6 +1517,23 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     }
     const b = panel.getBox();
     b.style.display = b.style.display === "none" ? "" : "none";
+  });
+  GM_registerMenuCommand("暗黑模式: 自动/常亮/关闭(当前" + dark.modeLabel() + ")", () => {
+    const order = ["auto", "on", "off"];
+    const next = order[(order.indexOf(dark.mode()) + 1) % order.length];
+    dark.setMode(next);
+    dark.apply();
+    panel.log("暗黑模式 → " + dark.modeLabel());
+  });
+  GM_registerMenuCommand("设置暗黑起始小时(默认19)", () => {
+    const v = Number(prompt("暗黑模式开始小时(0-23, 默认19):", String(dark.hours().from)));
+    if (dark.setHour("from", v)) { dark.apply(); panel.log("暗黑起始 → " + v + "点"); }
+    else if (v || v === 0) panel.log("小时无效(须 0-23)");
+  });
+  GM_registerMenuCommand("设置暗黑结束小时(默认7)", () => {
+    const v = Number(prompt("暗黑模式结束小时(0-23, 默认7):", String(dark.hours().to)));
+    if (dark.setHour("to", v)) { dark.apply(); panel.log("暗黑结束 → " + v + "点"); }
+    else if (v || v === 0) panel.log("小时无效(须 0-23)");
   });
   GM_registerMenuCommand("\u914D\u989D\u7528\u5C3D\u540E: \u505C\u6B62/\u7B49\u5230\u6B21\u65E5\u7EE7\u7EED(\u5F53\u524D" + (gm.getValue("quotaPolicy") === "wait" ? "\u7B49\u5230\u6B21\u65E5" : "\u505C\u6B62") + ")", () => {
     const next = gm.getValue("quotaPolicy") === "wait" ? "stop" : "wait";

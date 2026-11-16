@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.3
+// @version      0.0.4
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -374,12 +374,14 @@
   function createEngine({ api: api2, state: state2, config: config2, log = () => {
   }, ui = () => {
   }, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), lock: lock2 = null, currentBid: currentBid2 = () => "", playSection: playSection2 = null }) {
-    function setSectionProgress(submitted, total, t0) {
+    function setSectionProgress(submitted, total, t0, depth) {
       const p = state2.prog;
       if (!p) return;
       p.sectionSec = Math.max(0, Number(submitted) || 0);
       p.sectionTotalSec = Math.max(0, Number(total) || 0);
-      p.curFrac = p.sectionTotalSec ? Math.min(1, p.sectionSec / p.sectionTotalSec) : 0;
+      const frac = p.sectionTotalSec ? Math.min(1, p.sectionSec / p.sectionTotalSec) : 0;
+      const nt = Math.max(0, Number(p.nestedTotal) || 0);
+      p.curFrac = depth > 0 && nt ? Math.min(1, ((Number(p.nestedDone) || 0) + frac) / nt) : frac;
       const elapsed = t0 ? Date.now() - t0 : 0;
       p.etaMs = p.sectionTotalSec && p.sectionSec > 0 && elapsed > 1500 ? Math.max(0, (p.sectionTotalSec - p.sectionSec) / (p.sectionSec / elapsed)) : null;
     }
@@ -391,6 +393,8 @@
       p.curFrac = 0;
       p.sectionSec = 0;
       p.sectionTotalSec = 0;
+      p.nestedDone = 0;
+      p.nestedTotal = 0;
       p.etaMs = null;
     }
     async function undoneTasks() {
@@ -483,19 +487,17 @@
       if (DONE.has(sec.finish)) return [true, "\u5DF2\u5B8C\u6210, \u8DF3\u8FC7"];
       if (MEDIA.has(sec.type) && playSection2) {
         state2.section = sec.name;
-        return await playSection2(sec, { courseId });
+        return await playSection2(sec, { courseId, depth });
       }
       if (sec.type === NESTED) {
         if (depth >= 2) return [false, "\u5D4C\u5957\u8FC7\u6DF1, \u8DF3\u8FC7"];
         const parentCourse = state2.course;
         const parentVid = state2.versionId, parentReg = state2.isRegister;
-        const parentProg = state2.prog ? Object.assign({}, state2.prog) : null;
         log(`\u21B3 \u5173\u8054\u8BFE\u7A0B ${sec.rid}`);
         const [done, total2] = await runCourse(sec.rid, depth + 1);
         state2.course = parentCourse;
         state2.versionId = parentVid;
         state2.isRegister = parentReg;
-        if (parentProg) state2.prog = parentProg;
         if (done < total2) return [false, `\u5B50\u8BFE\u7A0B\u672A\u5B8C\u6210 ${done}/${total2}`];
         const settled = await settleNested(courseId, sec.rid, sec.id);
         return [settled, settled ? "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u5DF2\u7ED3\u7B97" : "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u7ED3\u7B97\u672A\u786E\u8BA4(\u7A0D\u540E\u590D\u6838)"];
@@ -546,7 +548,7 @@
         conflicts = 0;
         submitted += step;
         state2.submitted = submitted;
-        setSectionProgress(submitted, total, secT0);
+        setSectionProgress(submitted, total, secT0, depth);
         if (courseId) await progressUpdate(courseId);
         ui();
         await sleep(Math.max(0, config2.roundSleepMs(step) - (Date.now() - roundStart)));
@@ -574,7 +576,12 @@
       state2.course = name;
       log(`===== ${name} =====`);
       const todo = secs.filter((s) => !DONE.has(s.finish));
-      resetCourseProgress(todo.filter((s) => !SKIP.has(s.type)).length);
+      const countable = todo.filter((s) => !SKIP.has(s.type)).length;
+      if (depth === 0) resetCourseProgress(countable);
+      else if (state2.prog) {
+        state2.prog.nestedDone = 0;
+        state2.prog.nestedTotal = countable;
+      }
       ui();
       log(`\u5C0F\u8282 ${secs.length} \u4E2A, \u5F85\u5904\u7406 ${todo.length}`);
       if (!secs.length) {
@@ -595,9 +602,13 @@
           if (good) {
             ok += 1;
             if (state2.prog) {
-              state2.prog.secDone += 1;
-              state2.prog.curFrac = 0;
-              state2.prog.etaMs = null;
+              if (depth === 0) {
+                state2.prog.secDone += 1;
+                state2.prog.curFrac = 0;
+                state2.prog.etaMs = null;
+              } else {
+                state2.prog.nestedDone = (Number(state2.prog.nestedDone) || 0) + 1;
+              }
             }
           } else if (SKIP.has(sec.type)) skipped += 1;
           log(`   \u2192 ${msg}`);
@@ -626,7 +637,7 @@
       let failCount = 0, quotaHit = false;
       const bid = currentBid2();
       const mode = bid ? "course" : "tasks";
-      state2.prog = { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: bid ? 1 : 0, sectionSec: 0, sectionTotalSec: 0, etaMs: null };
+      state2.prog = { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: bid ? 1 : 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null };
       ui();
       try {
         if (bid) {
@@ -778,7 +789,7 @@
     gm: gm2,
     onStart
   }) {
-    let box, logEl, statusEl, btnStart, progEl, courseEl, barFill, pctEl, metaEl, subEl, headPct;
+    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, labelEl, metaEl, subEl, headPct;
     const pendingLogs = [];
     function log(msg) {
       const t = (/* @__PURE__ */ new Date()).toLocaleTimeString("zh-CN", { hour12: false });
@@ -818,8 +829,7 @@
       const { pct, secTotal, coursesTotal } = pctInfo();
       const hasProg = !!(secTotal || coursesTotal);
       if (progEl) progEl.style.display = hasProg ? "" : "none";
-      if (barFill) barFill.style.width = pct + "%";
-      if (pctEl) pctEl.textContent = hasProg ? pct + "%" : "";
+      if (fillEl) fillEl.style.width = hasProg ? pct + "%" : "0";
       if (courseEl) courseEl.textContent = state2.course || "";
       if (metaEl) {
         const bits = [];
@@ -834,7 +844,9 @@
         if (state2.running) {
           if (state2.round) bits.push(`\u7B2C ${state2.round} \u8F6E`);
           const tot = Math.trunc(Number(p.sectionTotalSec) || 0);
-          bits.push(tot ? `\u5DF2\u62A5 ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s` : `\u5DF2\u62A5 ${Math.trunc(Number(state2.submitted) || 0)}s`);
+          const sub = Math.trunc(Number(state2.submitted) || 0);
+          if (tot) bits.push(`\u5DF2\u62A5 ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
+          else if (sub) bits.push(`\u5DF2\u62A5 ${sub}s`);
           const eta = fmtEta(p.etaMs);
           if (eta) bits.push(eta);
         }
@@ -842,7 +854,10 @@
         subEl.style.display = bits.length ? "" : "none";
       }
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";
-      btnStart.textContent = state2.running ? "\u23F8 \u505C\u6B62" : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
+      if (labelEl) {
+        const pctTxt = hasProg ? ` ${pct}%` : "";
+        labelEl.textContent = state2.running ? `\u23F8 \u505C\u6B62${pctTxt}` : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210 100%" : pct > 0 ? `\u25B6 \u7EE7\u7EED${pctTxt}` : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
+      }
     }
     function headerColor(fallback) {
       try {
@@ -932,17 +947,13 @@
         <div class="${prefix}-prog" style="padding:8px 10px 6px;border-bottom:1px solid #eaeef2">
           <div class="${prefix}-pwrap">
             <div class="${prefix}-course" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-              <div style="flex:1;height:6px;border-radius:3px;background:#eaeef2;overflow:hidden"><i class="${prefix}-bar" style="display:block;height:100%;width:0;background:${theme.bg};border-radius:3px;transition:width .35s ease"></i></div>
-              <span class="${prefix}-pct" style="min-width:34px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums"></span>
-            </div>
-            <div class="${prefix}-meta" style="margin-top:5px;color:#57606a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div class="${prefix}-meta" style="margin-top:3px;color:#57606a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
           </div>
           <div id="${prefix}-status" style="margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
           <div class="${prefix}-sub" style="margin-top:2px;color:#57606a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
         </div>
         <div style="padding:6px 10px">
-          <button id="${prefix}-start" style="display:inline-flex;width:100%;align-items:center;justify-content:center;height:28px;padding:0 8px;font:inherit;line-height:1;cursor:pointer;border:1px solid ${theme.bg};background:${theme.bg};color:${fg};border-radius:6px"></button>
+          <button id="${prefix}-start" style="position:relative;overflow:hidden;display:inline-flex;width:100%;align-items:center;justify-content:center;height:28px;padding:0 8px;font:inherit;line-height:1;cursor:pointer;border:1px solid ${theme.bg};background:${theme.bg};color:${fg};border-radius:6px"><i class="${prefix}-fill" style="position:absolute;left:0;top:0;bottom:0;width:0;background:${theme.light ? "rgba(255,255,255,.28)" : "rgba(0,0,0,.1)"};transition:width .35s ease;pointer-events:none"></i><span class="${prefix}-label" style="position:relative;z-index:1"></span></button>
         </div>
         <div id="${prefix}-log" style="height:180px;overflow-y:auto;padding:4px 10px;border-top:1px solid #eaeef2;white-space:pre-wrap"></div>
       </div>`;
@@ -962,8 +973,8 @@
       btnStart = box.querySelector(`#${prefix}-start`);
       progEl = box.querySelector(`.${prefix}-pwrap`);
       courseEl = box.querySelector(`.${prefix}-course`);
-      barFill = box.querySelector(`.${prefix}-bar`);
-      pctEl = box.querySelector(`.${prefix}-pct`);
+      fillEl = box.querySelector(`.${prefix}-fill`);
+      labelEl = box.querySelector(`.${prefix}-label`);
       metaEl = box.querySelector(`.${prefix}-meta`);
       subEl = box.querySelector(`.${prefix}-sub`);
       headPct = box.querySelector(`.${prefix}-headpct`);
@@ -1012,7 +1023,7 @@
           btn.style.borderColor = theme.bg;
           btn.style.color = fg;
         }
-        if (barFill) barFill.style.background = theme.bg;
+        if (fillEl) fillEl.style.background = theme.light ? "rgba(255,255,255,.28)" : "rgba(0,0,0,.1)";
         if (!state2.pinned && !state2.stacked) {
           box.style.top = "auto";
           box.style.bottom = "16px";
@@ -1114,7 +1125,7 @@
       }
     }
   };
-  var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, etaMs: null } };
+  var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null } };
   var hunter = createTokenHunter({ log: (m) => panel.log(m) }); // panel.log lazy ref: panel exists by boot time, so storage-restored token shows in panel too
   var api = createApi({ hunter, gm, log: (m) => panel.log(m) });
   var config = {
@@ -1164,7 +1175,7 @@
     }
     return null;
   }
-  async function playSection(sec, { courseId }) {
+  async function playSection(sec, { courseId, depth }) {
     panel.log(`\u25B6 \u64AD\u653E: ${sec.name}`);
     if (!location.hash.includes(courseId)) location.hash = `#/study/course/detail/1&${courseId}`;
     const media = await waitFor(() => document.querySelector("video, audio"), 2e4);
@@ -1199,9 +1210,11 @@
       lastLoc = loc;
       if (dur) {
         const el = Date.now() - playT0;
+        const frac = Math.min(1, loc / dur);
+        const nt = Math.max(0, Number(state.prog.nestedTotal) || 0);
         state.prog.sectionSec = loc;
         state.prog.sectionTotalSec = dur;
-        state.prog.curFrac = Math.min(1, loc / dur);
+        state.prog.curFrac = depth > 0 && nt ? Math.min(1, ((Number(state.prog.nestedDone) || 0) + frac) / nt) : frac;
         state.prog.etaMs = loc > 0 && el > 1500 ? Math.max(0, (dur - loc) / (loc / el)) : null;
         panel.ui();
         const pct = Math.trunc(loc / dur * 100 / 20) * 20;

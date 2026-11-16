@@ -52,7 +52,12 @@ async function runOne(kind) {
 
   const ok = await api.relogin();
   t.ok("登录成功", !!ok, JSON.stringify(ok).slice(0, 200));
-  if (!ok) return;
+  if (!ok) {
+    // 失败时把内部日志打出来，否则 CI 里只看到一句 null，无从判断是密码错还是被 WAF 拦
+    console.log("  内部日志：");
+    for (const line of log) console.log("    " + line);
+    return;
+  }
 
   const [code, body] = await api.req("GET", API.TASKS, { params: { page: 1, pageSize: 5, status: "", filterAuthExam: 1 } });
   t.check("任务列表 HTTP 200", code, 200);

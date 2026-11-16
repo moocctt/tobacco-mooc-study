@@ -103,8 +103,10 @@ function main() {
     .filter((c) => !/^chore\(release\)/.test(c.subject));
 
   const MEANINGFUL = new Set(["feat", "fix", "perf", "refactor", "style", "docs", "test", "ci", "build"]);
+  // 只改文档 / 测试 / CI 的提交不单独发版（否则改个错字就抬一次 @version，脚本站会白拉一次）
+  const SHIPPABLE = new Set(["feat", "fix", "perf", "refactor", "style"]);
   const releasable = commits.filter((c) => c.breaking || MEANINGFUL.has(c.type));
-  if (!releasable.length) {
+  if (!releasable.some((c) => c.breaking || SHIPPABLE.has(c.type))) {
     console.log(`当前版本 ${current}，没有需要发布的提交`);
     return;
   }

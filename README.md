@@ -209,7 +209,8 @@ CI 分三条流水线：
 
 发版规则：提交信息用 `feat:` / `fix:` / `perf:` / `refactor:` / `style:` / `docs:` / `test:` / `ci:` 开头，
 `release.yml` 按类型归组写进 `CHANGELOG.md`，并把新版本号同步到 `package.json` 和两个脚本的 `@version`。
-0.x 阶段统一走 `0.0.x` 递进；带 `!` 或 `BREAKING CHANGE` 的提交升次版本号。
+只改 `docs` / `test` / `ci` 的提交不单独发版（否则改个错字就抬一次 `@version`，脚本站白拉一次），
+会并入下一次发布。0.x 阶段统一走 `0.0.x` 递进；带 `!` 或 `BREAKING CHANGE` 的提交升次版本号。
 
 真机测试要跑起来，在仓库 `Settings → Secrets and variables → Actions` 里加两个 Secret：
 `MOOC_USERNAME`、`MOOC_PASSWORD`。

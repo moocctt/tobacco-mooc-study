@@ -908,7 +908,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";
       if (labelEl) {
         const pctTxt = hasProg ? ` ${pct}%` : "";
-        labelEl.textContent = state2.running ? `\u23F8 \u505C\u6B62${pctTxt}` : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210 100%" : pct > 0 ? `\u25B6 \u7EE7\u7EED${pctTxt}` : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
+        labelEl.textContent = state2.stopFlag && state2.running ? "\u23F8 \u505C\u6B62\u4E2D\u2026" : state2.running ? `\u23F8 \u505C\u6B62${pctTxt}` : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210 100%" : pct > 0 ? `\u25B6 \u7EE7\u7EED${pctTxt}` : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
       }
     }
     function headerColor(fallback) {
@@ -1139,8 +1139,9 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     taskGapMs: () => rand(1500, 3e3),
     coursePageLabel: "\u5FEB\u901F\u5237\u672C\u8BFE\u7A0B/\u4E13\u9898"
   };
+  var TAB = (() => { try { const k = "__MOOC_US_TAB__"; let v = sessionStorage.getItem(k); if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem(k, v); } return v; } catch { return Math.random().toString(36).slice(2, 10); } })();
   var lock = createLock("fast");
-  var INSTANCE = "fast#" + Math.random().toString(36).slice(2, 8);
+  var INSTANCE = "fast#" + TAB;
   var guard = createSessionGuard(gm);
   config.canStart = () => guard.hold(INSTANCE);
   var currentBid = () => currentBidFromHash(location.hash);
@@ -1160,6 +1161,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       if (state.running) {
         state.stopFlag = true;
         panel.log("\u6B63\u5728\u505C\u6B62(\u7B49\u5F53\u524D\u8F6E\u7ED3\u675F)\u2026");
+        panel.ui();
       } else if (guard.held(INSTANCE)) {
         panel.log("\u26D4 \u53E6\u4E00\u4E2A\u6807\u7B7E\u9875\u7684\u5B66\u4E60\u811A\u672C\u6B63\u5728\u8FD0\u884C, \u4E0D\u542F\u52A8(\u9632\u591A\u5F00)");
       } else {
@@ -1180,6 +1182,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   setInterval(() => {
     if (state.running) guard.hold(INSTANCE);
   }, 15e3);
+  window.addEventListener("pagehide", () => guard.release(INSTANCE));
   hunter.installHooks({});
   (function boot() {
     hunter.tokenFromStorage();

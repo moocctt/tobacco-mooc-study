@@ -789,18 +789,26 @@
       if (v) gm2.setValue(KEY2, JSON.stringify(v));
       else gm2.deleteValue(KEY2);
     };
+    const fresh = (cur) => !!(cur && now() - cur.ts < ttlMs);
     return {
       // 占住会话; 已被其他 owner 占用且未过期时返回 false
-      hold(owner) {
+      hold(owner, kind) {
         const cur = read();
-        if (cur && cur.owner !== owner && now() - cur.ts < ttlMs) return false;
-        write({ owner, ts: now() });
+        if (fresh(cur) && cur.owner !== owner) return false;
+        write({ owner, kind: kind || "", ts: now() });
         const back = read();
         return !!(back && back.owner === owner);
       },
+      // 别人正占着且未过期 (占位者自己调用时为 false)
       held(owner) {
         const cur = read();
-        return !!(cur && now() - cur.ts < ttlMs && (owner ? cur.owner !== owner : true));
+        return fresh(cur) && (!owner || cur.owner !== owner);
+      },
+      // 别人占着的记录, 用来告诉用户是谁在跑; 没人占时为 null
+      holder(owner) {
+        const cur = read();
+        if (!fresh(cur) || owner && cur.owner === owner) return null;
+        return { owner: cur.owner, kind: cur.kind || "" };
       },
       release(owner) {
         const cur = read();
@@ -1177,7 +1185,13 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   var lock = createLock("fast");
   var INSTANCE = "fast#" + Math.random().toString(36).slice(2, 8);
   var guard = createSessionGuard(gm);
-  config.canStart = () => guard.hold(INSTANCE);
+  var KIND = "fast";
+  var otherLabel = () => {
+    const h = guard.holder(INSTANCE);
+    if (!h) return "\u53E6\u4E00\u4E2A\u811A\u672C";
+    return (h.kind === "fast" ? "\u5FEB\u901F\u5237\u8BFE" : h.kind === "realtime" ? "\u65E0\u4EBA\u503C\u5B88" : "\u53E6\u4E00\u4E2A") + "\u811A\u672C";
+  };
+  config.canStart = () => guard.hold(INSTANCE, KIND);
   var currentBid = () => currentBidFromHash(location.hash);
   var engine;
   var panel = createPanel({
@@ -1188,7 +1202,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     verb: "\u5237",
     consoleTag: "\u5FEB\u901F\u5237\u8BFE",
     state,
-    lockOwner: lock.lockOwner,
+    lockOwner: () => lock.lockOwner() || (guard.held(INSTANCE) ? "\u53E6\u4E00\u6807\u7B7E\u9875" : ""),
     currentBid,
     gm,
     onStart: () => {
@@ -1196,10 +1210,10 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         state.stopFlag = true;
         panel.log("\u6B63\u5728\u505C\u6B62(\u7B49\u5F53\u524D\u8F6E\u7ED3\u675F)\u2026");
       } else if (guard.held(INSTANCE)) {
-        panel.log("\u26D4 \u53E6\u4E00\u4E2A\u6807\u7B7E\u9875\u7684\u5B66\u4E60\u811A\u672C\u6B63\u5728\u8FD0\u884C, \u4E0D\u542F\u52A8(\u9632\u591A\u5F00)");
+        panel.log(`\u26D4 ${otherLabel()}\u6B63\u5728\u53E6\u4E00\u4E2A\u6807\u7B7E\u9875\u8FD0\u884C, \u4E0D\u542F\u52A8(\u9632\u591A\u5F00)`);
       } else {
         panel.setCollapsed(false);
-        guard.hold(INSTANCE);
+        guard.hold(INSTANCE, KIND);
         engine.runAll().then((r) => {
           if (r && r.ok && !state.stopFlag) {
             panel.log("\u21BB 2 \u79D2\u540E\u5237\u65B0\u9875\u9762\u4EE5\u66F4\u65B0\u8FDB\u5EA6\u2026");
@@ -1213,8 +1227,9 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   });
   engine = createEngine({ api, state, config, log: panel.log, ui: panel.ui, lock, currentBid });
   setInterval(() => {
-    if (state.running) guard.hold(INSTANCE);
+    if (state.running) guard.hold(INSTANCE, KIND);
   }, 15e3);
+  window.addEventListener("pagehide", () => guard.release(INSTANCE));
   hunter.installHooks({});
   (function boot() {
     hunter.tokenFromStorage();

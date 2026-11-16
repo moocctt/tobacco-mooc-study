@@ -157,10 +157,24 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 │   ├── tobacco-mooc-fast.additional-info.md         # ⚡ 发布页「附加说明」
 │   ├── tobacco-mooc-unattended.user.js              # ▶ 无人值守
 │   └── tobacco-mooc-unattended.additional-info.md   # ▶ 发布页「附加说明」
+├── tests/
+│   ├── runner.js                        # 逐个跑 *.test.js，汇总结果
+│   ├── panel.test.js                    # 面板 DOM：进度块/按钮/日志的布局与文案
+│   ├── engine.test.js                   # 引擎：刷课流程、跳过规则、进度单调
+│   ├── guard.test.js                    # 互斥：只有对方真在跑时才挡
+│   ├── quota.test.js                    # 配额：等次日再续跑
+│   └── live.test.js                     # 真机只读冒烟（需环境变量）
+├── scripts/
+│   └── changelog.js                     # 从提交记录生成 CHANGELOG + 升版本号
+├── .github/workflows/
+│   ├── ci.yml                           # 语法检查 + 单元测试
+│   ├── live.yml                         # 每日真机只读冒烟
+│   └── release.yml                      # 合并后自动发版
 ├── assets/readme/
 │   ├── hero.svg                         # 头图：两模式面板对照
 │   ├── pacing.svg                       # 学时 / 真实时间曲线
 │   └── flow.svg                         # 上报链路
+├── CHANGELOG.md                         # 自动生成，勿手改
 ├── .gitignore
 └── README.md
 ```
@@ -168,6 +182,37 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），11 个模块完全共用：
 `token` `constants` `aes` `fingerprint` `util` `api` `engine` `lock` `guard` `panel` `routes`，
 差异只在入口与播放器。
+
+## 开发与自动化
+
+```bash
+npm ci            # 装 jsdom（只有测试要用）
+npm run check     # node --check 两个脚本
+npm run test:unit # 面板 / 引擎 / 互斥 / 配额，纯本地，不联网
+npm run test:live # 真机只读冒烟，需要 MOOC_USERNAME / MOOC_PASSWORD
+npm run changelog # 预览下一个版本与 CHANGELOG 片段（不写文件）
+npm run release   # 真正写入 CHANGELOG.md 并升版本号（CI 里自动跑）
+```
+
+**真机测试是只读的**：登录 → 拉任务列表 → 取一门课的章节，全程不调用任何 `*-progress` 接口，
+所以不会消耗学时配额，也不会改动任何学习进度。账号只从环境变量读，仓库里没有凭证。
+
+测试需要 Node ≥ 22.22（jsdom 31 的下限）；两个 `.user.js` 本身跑在浏览器里，与 Node 版本无关。
+
+CI 分三条流水线：
+
+| 工作流 | 触发 | 做什么 |
+| :-- | :-- | :-- |
+| `ci.yml` | PR / push main | `node --check` + 单元测试，ubuntu+windows × node 20/22 四组 |
+| `live.yml` | 每天 09:00、手动 | 真机只读冒烟；没配 Secrets 就跳过 |
+| `release.yml` | push main | 跑测试 → 生成 CHANGELOG → 升 `@version` → 打 tag → 建 Release |
+
+发版规则：提交信息用 `feat:` / `fix:` / `perf:` / `refactor:` / `style:` / `docs:` / `test:` / `ci:` 开头，
+`release.yml` 按类型归组写进 `CHANGELOG.md`，并把新版本号同步到 `package.json` 和两个脚本的 `@version`。
+0.x 阶段统一走 `0.0.x` 递进；带 `!` 或 `BREAKING CHANGE` 的提交升次版本号。
+
+真机测试要跑起来，在仓库 `Settings → Secrets and variables → Actions` 里加两个 Secret：
+`MOOC_USERNAME`、`MOOC_PASSWORD`。
 
 ## 免责
 

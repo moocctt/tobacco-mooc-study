@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.5
+// @version      0.0.6
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -397,6 +397,17 @@
       p.nestedTotal = 0;
       p.etaMs = null;
     }
+    function msUntilQuotaReset(nowMs = Date.now()) {
+      const d = new Date(nowMs);
+      const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 5 + Math.trunc(Math.random() * 10), 0, 0);
+      return Math.max(0, next.getTime() - nowMs);
+    }
+    function fmtWait(ms) {
+      const m = Math.max(1, Math.round(ms / 6e4));
+      const h = Math.floor(m / 60), mm = m % 60;
+      if (h <= 0) return `\u7EA6 ${mm} \u5206`;
+      return mm ? `\u7EA6 ${h} \u5C0F\u65F6 ${mm} \u5206` : `\u7EA6 ${h} \u5C0F\u65F6`;
+    }
     async function undoneTasks() {
       const all = [];
       const seen = /* @__PURE__ */ new Set();
@@ -493,7 +504,7 @@
         if (depth >= 2) return [false, "\u5D4C\u5957\u8FC7\u6DF1, \u8DF3\u8FC7"];
         const parentCourse = state2.course;
         const parentVid = state2.versionId, parentReg = state2.isRegister;
-        log(`\u21B3 \u5173\u8054\u8BFE\u7A0B ${sec.rid}`);
+        log(`\u21B3 \u5173\u8054\u8BFE\u7A0B ${sec.name || String(sec.rid).slice(0, 8) + "\u2026"}`);
         const [done, total2] = await runCourse(sec.rid, depth + 1);
         state2.course = parentCourse;
         state2.versionId = parentVid;
@@ -625,6 +636,29 @@
       return [ok, todo.length - skipped];
     }
     async function runAll() {
+      for (;;) {
+        const res = await runAllOnce();
+        if (!res.quotaHit || state2.stopFlag) return res;
+        if (!config2.quotaPolicy || config2.quotaPolicy() !== "wait") return res;
+        const ms = msUntilQuotaReset();
+        if (!(ms > 1e3)) return res;
+        state2.running = true;
+        ui();
+        log(`[\u914D\u989D] \u5B66\u65F6\u914D\u989D\u5DF2\u6EE1, ${fmtWait(ms)} \u540E\u81EA\u52A8\u7EE7\u7EED (\u6B21\u65E5 00:05 \u524D\u540E)`);
+        const until = Date.now() + ms;
+        while (!state2.stopFlag && Date.now() < until) {
+          await sleep(Math.min(3e4, until - Date.now()));
+        }
+        state2.running = false;
+        ui();
+        if (state2.stopFlag) {
+          log("\u25A0 \u5DF2\u505C\u6B62 (\u914D\u989D\u7B49\u5F85\u4E2D)");
+          return res;
+        }
+        log("[\u914D\u989D] \u5F00\u59CB\u7EE7\u7EED");
+      }
+    }
+    async function runAllOnce() {
       const owner = lock2 ? lock2.lockOwner() : "";
       if (owner || state2.running) {
         log(`\u2717 ${owner || "\u5F53\u524D\u4EFB\u52A1"}\u6B63\u5728\u8FD0\u884C, \u8BF7\u5148\u505C\u6B62\u5B83`);
@@ -696,7 +730,7 @@
             await sleep(config2.taskGapMs());
           }
         }
-        if (quotaHit) log("\u26A0 \u5B66\u65F6\u914D\u989D\u5DF2\u6EE1, \u5DF2\u505C\u6B62 (\u6B21\u65E5\u518D\u8BD5)");
+        if (quotaHit) log("\u26A0 \u5B66\u65F6\u914D\u989D\u5DF2\u6EE1, \u672C\u6B21\u8FD0\u884C\u4E2D\u6B62");
         else if (!state2.stopFlag) {
           if (mode === "course") log(failCount ? `\u26A0 \u672C\u8BFE\u7A0B/\u4E13\u9898\u5904\u7406\u5B8C\u6BD5 (\u5931\u8D25 ${failCount} \u5904)` : "\u2705 \u672C\u8BFE\u7A0B/\u4E13\u9898\u5904\u7406\u5B8C\u6BD5");
           else log(failCount ? `\u26A0 \u5168\u90E8\u4EFB\u52A1\u5904\u7406\u5B8C\u6BD5 (\u5931\u8D25 ${failCount} \u95E8)` : "\u2705 \u5168\u90E8\u4EFB\u52A1\u5904\u7406\u5B8C\u6BD5");
@@ -1137,6 +1171,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     roundSleepMs: () => rand(600, 1600),
     roundsSlack: 5,
     taskGapMs: () => rand(1500, 3e3),
+    quotaPolicy: () => gm.getValue("quotaPolicy") || "stop",
     coursePageLabel: "\u5FEB\u901F\u5237\u672C\u8BFE\u7A0B/\u4E13\u9898"
   };
   var lock = createLock("fast");
@@ -1241,6 +1276,11 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     }
     const b = panel.getBox();
     b.style.display = b.style.display === "none" ? "" : "none";
+  });
+  GM_registerMenuCommand("\u914D\u989D\u7528\u5C3D\u540E: \u505C\u6B62/\u7B49\u5230\u6B21\u65E5\u7EE7\u7EED(\u5F53\u524D" + (gm.getValue("quotaPolicy") === "wait" ? "\u7B49\u5230\u6B21\u65E5" : "\u505C\u6B62") + ")", () => {
+    const next = gm.getValue("quotaPolicy") === "wait" ? "stop" : "wait";
+    gm.setValue("quotaPolicy", next);
+    panel.log(`\u914D\u989D\u7528\u5C3D\u540E \u2192 ${next === "wait" ? "\u7B49\u5230\u6B21\u65E5\u81EA\u52A8\u7EE7\u7EED" : "\u505C\u6B62"}`);
   });
   GM_registerMenuCommand("\u8BBE\u7F6E\u5355\u6863\u79D2\u6570(\u226530)", () => {
     const v = Number(prompt("\u6BCF\u4E2A\u5C0F\u8282\u6BCF\u6B21\u4E0A\u62A5\u7684\u79D2\u6570(\u226530, \u9ED8\u8BA4600):", String(gm.getValue("chunk") || 600)));

@@ -56,6 +56,18 @@ async function runOne(kind) {
     // 失败时把内部日志打出来，否则 CI 里只看到一句 null，无从判断是密码错还是被 WAF 拦
     console.log("  内部日志：");
     for (const line of log) console.log("    " + line);
+    try {
+      const g = await fetch(ORIGIN + "/", { headers: { "User-Agent": UA } });
+      console.log("  探针 GET / →", g.status);
+      const p = await fetch(ORIGIN + "/oauth/api/v1/app-login", {
+        method: "POST",
+        headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded" },
+        body: "probe=1"
+      });
+      console.log("  探针 POST app-login →", p.status, (await p.text()).slice(0, 160));
+    } catch (e) {
+      console.log("  探针异常", (e && e.message) || e);
+    }
     return;
   }
 

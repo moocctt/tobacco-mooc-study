@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.4
+// @version      0.0.5
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -776,6 +776,45 @@
   }
 
   // src/panel.js
+  const FONT_UI = '-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif';
+  const FONT_MONO = 'ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace';
+  function panelCss(prefix) {
+    const P = `#${prefix}-box`;
+    return `
+${P}{--p-bg:rgba(255,255,255,.92);--p-fg:#1f2328;--p-dim:#59636e;--p-line:#e6eaef;--p-log:rgba(246,248,250,.72);--p-focus:#0969da;--p-accent:#57606a;--p-on-accent:#fff;background:var(--p-bg);backdrop-filter:blur(10px) saturate(1.15);border:1px solid var(--p-line);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px -8px rgba(0,0,0,.32),0 2px 8px rgba(0,0,0,.06);font:12px/1.5 ${FONT_UI};color:var(--p-fg);-webkit-font-smoothing:antialiased}
+${P}[data-dark="1"]{--p-bg:rgba(28,32,38,.92);--p-fg:#e6edf3;--p-dim:#9198a1;--p-line:rgba(255,255,255,.1);--p-log:rgba(0,0,0,.2);--p-focus:#4493f8}
+${P} ::selection{background:rgba(9,105,218,.22)}
+${P} .${prefix}-head{padding:7px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--p-accent);color:var(--p-on-accent)}
+${P} .${prefix}-title{font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} .${prefix}-headright{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+${P} .${prefix}-headpct{font:600 11px/1 ${FONT_MONO};font-variant-numeric:tabular-nums;opacity:.85}
+${P} .${prefix}-chev{display:block;opacity:.75;transition:transform .18s ease,opacity .18s ease}
+${P} .${prefix}-head:hover .${prefix}-chev{opacity:1}
+${P}[data-collapsed="1"] .${prefix}-chev{transform:rotate(-90deg)}
+${P} .${prefix}-prog{padding:9px 10px 8px}
+${P} .${prefix}-course{font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+${P} .${prefix}-meta{margin-top:4px;font-size:11px;color:var(--p-dim);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} #${prefix}-status{margin-top:6px;font-size:11.5px;color:var(--p-fg);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} .${prefix}-sub{margin-top:3px;font-size:11px;color:var(--p-dim);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} .${prefix}-btnwrap{padding:0 10px 9px}
+${P} #${prefix}-start{position:relative;overflow:hidden;display:flex;width:100%;align-items:center;justify-content:center;height:30px;padding:0 10px;border:0;border-radius:7px;background:var(--p-accent);color:var(--p-on-accent);font:600 12px/1 ${FONT_UI};letter-spacing:.01em;cursor:pointer;transition:filter .15s ease}
+${P} #${prefix}-start:hover{filter:brightness(1.07)}
+${P} #${prefix}-start:active{filter:brightness(.96)}
+${P} #${prefix}-start:focus-visible{outline:2px solid var(--p-focus);outline-offset:2px}
+${P} .${prefix}-track{position:absolute;inset:0;background:rgba(0,0,0,.26);opacity:0;transition:opacity .2s ease;pointer-events:none}
+${P} .${prefix}-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--p-accent);transition:width .35s cubic-bezier(.22,.61,.36,1);pointer-events:none}
+${P} .${prefix}-label{position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} #${prefix}-log{height:180px;overflow-y:auto;overscroll-behavior:contain;padding:6px 10px 8px;border-top:1px solid var(--p-line);background:var(--p-log);font:11px/1.6 ${FONT_MONO}}
+${P} #${prefix}-log>div{display:flex;gap:6px;align-items:baseline}
+${P} .${prefix}-ts{color:var(--p-dim);opacity:.7;flex:0 0 auto;font-variant-numeric:tabular-nums}
+${P} .${prefix}-tx{flex:1 1 auto;min-width:0;white-space:pre-wrap;word-break:break-word}
+${P} .${prefix}-tx.is-banner{font-weight:600}
+${P} #${prefix}-log::-webkit-scrollbar{width:8px}
+${P} #${prefix}-log::-webkit-scrollbar-thumb{background:rgba(130,130,130,.32);border-radius:4px}
+${P} #${prefix}-log::-webkit-scrollbar-thumb:hover{background:rgba(130,130,130,.5)}
+${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
+`;
+  }
   function createPanel({
     prefix,
     title,
@@ -789,19 +828,28 @@
     gm: gm2,
     onStart
   }) {
-    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, labelEl, metaEl, subEl, headPct;
+    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, metaEl, subEl, headPct;
     const pendingLogs = [];
+    function appendLine(t, msg) {
+      const line = document.createElement("div");
+      const ts = document.createElement("span");
+      ts.className = `${prefix}-ts`;
+      ts.textContent = t;
+      const tx = document.createElement("span");
+      tx.className = `${prefix}-tx` + (/^={3,}/.test(msg) ? " is-banner" : "");
+      tx.textContent = msg;
+      line.appendChild(ts);
+      line.appendChild(tx);
+      logEl.appendChild(line);
+      while (logEl.children.length > 60) logEl.removeChild(logEl.firstChild);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
     function log(msg) {
       const t = (/* @__PURE__ */ new Date()).toLocaleTimeString("zh-CN", { hour12: false });
-      if (logEl) {
-        const line = document.createElement("div");
-        line.textContent = `[${t}] ${msg}`;
-        logEl.appendChild(line);
-        while (logEl.children.length > 60) logEl.removeChild(logEl.firstChild);
-        logEl.scrollTop = logEl.scrollHeight;
-      } else {
+      if (logEl) appendLine(t, msg);
+      else {
         // boot 先于 mount 时（如 tokenFromStorage 的「令牌已捕获」），暂存起来等面板挂上再补显
-        pendingLogs.push(`[${t}] ${msg}`);
+        pendingLogs.push([t, msg]);
         if (pendingLogs.length > 60) pendingLogs.shift();
       }
       console.log(`[${consoleTag}] ${msg}`);
@@ -830,7 +878,11 @@
       const hasProg = !!(secTotal || coursesTotal);
       if (progEl) progEl.style.display = hasProg ? "" : "none";
       if (fillEl) fillEl.style.width = hasProg ? pct + "%" : "0";
-      if (courseEl) courseEl.textContent = state2.course || "";
+      if (trackEl) trackEl.style.opacity = hasProg && pct > 0 ? "1" : "0";
+      if (courseEl) {
+        courseEl.textContent = state2.course || "";
+        courseEl.style.display = state2.course ? "" : "none";
+      }
       if (metaEl) {
         const bits = [];
         if (secTotal) bits.push(`\u5C0F\u8282 ${Math.min(Number(p.secDone) || 0, secTotal)}/${secTotal}`);
@@ -882,6 +934,15 @@
       }
       return { bg: fallback, light: true };
     }
+    function pageIsDark() {
+      try {
+        const m = getComputedStyle(document.body).backgroundColor.match(/^rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\)$/);
+        if (m && (m[4] === void 0 || parseFloat(m[4]) >= 0.5)) return 0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3] < 128;
+        return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      } catch {
+        return false;
+      }
+    }
     function makeDraggable(head, panel2, onToggle) {
       let sx = 0, sy = 0, px = 0, py = 0, moved = false;
       head.addEventListener("mousedown", (e) => {
@@ -926,36 +987,37 @@
       const body = box.querySelector(`.${prefix}-body`);
       body.style.display = c ? "none" : "";
       box.style.width = c ? "auto" : "340px";
-      box.querySelector(`.${prefix}-toggle`).textContent = c ? "\u25A3" : "\u2014";
+      box.dataset.collapsed = c ? "1" : "0";
       box.title = c ? "\u70B9\u51FB\u6807\u9898\u680F\u5C55\u5F00" : "\u70B9\u51FB\u6807\u9898\u680F\u6298\u53E0";
       ui();
     }
     function mount() {
       if (box && (!document.contains || document.contains(box))) return;
-      const theme = headerColor(fallbackColor);
-      const fg = theme.light ? "#fff" : "#1f2328";
       const buddy = document.querySelector(".um-head, .uf-head");
       if (buddy) state2.stacked = true;
       const posCss = state2.stacked ? `top:${Math.round(buddy.parentElement.getBoundingClientRect().bottom + 12)}px` : "bottom:16px";
       box = document.createElement("div");
-      box.style.cssText = `position:fixed;${posCss};right:12px;z-index:999999;width:340px;background:rgba(255,255,255,.85);backdrop-filter:blur(6px);border:1px solid rgba(208,215,222,.8);border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15);font:12px/1.5 monospace;color:#1f2328;`;
+      box.id = `${prefix}-box`;
+      box.style.cssText = `position:fixed;${posCss};right:12px;z-index:999999;width:340px;`;
       box.innerHTML = `
-      <div class="${prefix}-head" style="padding:6px 10px;background:${theme.bg};color:${fg};display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none">
-        <b>${title}</b><span style="display:flex;align-items:center;gap:6px;flex:0 0 auto"><span class="${prefix}-headpct" style="font-variant-numeric:tabular-nums;opacity:.9"></span><span class="${prefix}-toggle" style="cursor:pointer">\u2014</span></span>
+      <style>${panelCss(prefix)}</style>
+      <div class="${prefix}-head">
+        <span class="${prefix}-title">${title}</span>
+        <span class="${prefix}-headright"><span class="${prefix}-headpct"></span><svg class="${prefix}-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.75 4.5 6 7.75 9.25 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </div>
       <div class="${prefix}-body">
-        <div class="${prefix}-prog" style="padding:8px 10px 6px;border-bottom:1px solid #eaeef2">
+        <div class="${prefix}-prog">
           <div class="${prefix}-pwrap">
-            <div class="${prefix}-course" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-            <div class="${prefix}-meta" style="margin-top:3px;color:#57606a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div class="${prefix}-course"></div>
+            <div class="${prefix}-meta"></div>
           </div>
-          <div id="${prefix}-status" style="margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-          <div class="${prefix}-sub" style="margin-top:2px;color:#57606a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <div id="${prefix}-status"></div>
+          <div class="${prefix}-sub"></div>
         </div>
-        <div style="padding:6px 10px">
-          <button id="${prefix}-start" style="position:relative;overflow:hidden;display:inline-flex;width:100%;align-items:center;justify-content:center;height:28px;padding:0 8px;font:inherit;line-height:1;cursor:pointer;border:1px solid ${theme.bg};background:${theme.bg};color:${fg};border-radius:6px"><i class="${prefix}-fill" style="position:absolute;left:0;top:0;bottom:0;width:0;background:${theme.light ? "rgba(255,255,255,.28)" : "rgba(0,0,0,.1)"};transition:width .35s ease;pointer-events:none"></i><span class="${prefix}-label" style="position:relative;z-index:1"></span></button>
+        <div class="${prefix}-btnwrap">
+          <button id="${prefix}-start" type="button"><i class="${prefix}-track"></i><i class="${prefix}-fill"></i><span class="${prefix}-label"></span></button>
         </div>
-        <div id="${prefix}-log" style="height:180px;overflow-y:auto;padding:4px 10px;border-top:1px solid #eaeef2;white-space:pre-wrap"></div>
+        <div id="${prefix}-log"></div>
       </div>`;
       const root = document.documentElement || document.body;
       if (!root) return;
@@ -974,18 +1036,13 @@
       progEl = box.querySelector(`.${prefix}-pwrap`);
       courseEl = box.querySelector(`.${prefix}-course`);
       fillEl = box.querySelector(`.${prefix}-fill`);
+      trackEl = box.querySelector(`.${prefix}-track`);
       labelEl = box.querySelector(`.${prefix}-label`);
       metaEl = box.querySelector(`.${prefix}-meta`);
       subEl = box.querySelector(`.${prefix}-sub`);
       headPct = box.querySelector(`.${prefix}-headpct`);
       if (pendingLogs.length) {
-        for (const msg of pendingLogs.splice(0)) {
-          const line = document.createElement("div");
-          line.textContent = msg;
-          logEl.appendChild(line);
-        }
-        while (logEl.children.length > 60) logEl.removeChild(logEl.firstChild);
-        logEl.scrollTop = logEl.scrollHeight;
+        for (const [t, msg] of pendingLogs.splice(0)) appendLine(t, msg);
       }
       makeDraggable(box.querySelector(`.${prefix}-head`), box, () => setCollapsed(!state2.collapsed));
       btnStart.onclick = (e) => {
@@ -1010,20 +1067,13 @@
           }
         }
         const theme = headerColor(fallbackColor);
-        const key = theme.bg + (theme.light ? "L" : "D");
+        const dark = pageIsDark();
+        const key = `${theme.bg}|${theme.light ? "L" : "D"}|${dark ? "D" : "L"}`;
         if (key === last) return;
         last = key;
-        const fg = theme.light ? "#fff" : "#1f2328";
-        const head = box.querySelector(`.${prefix}-head`);
-        const btn = box.querySelector(`#${prefix}-start`);
-        head.style.background = theme.bg;
-        head.style.color = fg;
-        if (btn) {
-          btn.style.background = theme.bg;
-          btn.style.borderColor = theme.bg;
-          btn.style.color = fg;
-        }
-        if (fillEl) fillEl.style.background = theme.light ? "rgba(255,255,255,.28)" : "rgba(0,0,0,.1)";
+        box.style.setProperty("--p-accent", theme.bg);
+        box.style.setProperty("--p-on-accent", theme.light ? "#fff" : "#1f2328");
+        box.dataset.dark = dark ? "1" : "0";
         if (!state2.pinned && !state2.stacked) {
           box.style.top = "auto";
           box.style.bottom = "16px";

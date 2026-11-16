@@ -8,6 +8,7 @@ mooc_token*.json
 /archive/
 
 # æœ¬åœ°ç¯å¢ƒ / ä¸´æ—¶äº§ç‰©
+node_modules/
 .workbuddy/
 .playwright-mcp/
 *.log
@@ -16,6 +17,5 @@ mooc_token*.json
 .vscode/
 
 docs/shots/live-*.json
-tests
-# ²âÊÔÓëÕæ»úÑéÖ¤¹¤¾ßÖ»±£ÁôÔÚ±¾µØ£¬²»Ëæ²Ö¿â·¢²¼
-tests/
+
+# çœŸæœºæµ‹è¯•åªä»ç¯å¢ƒå˜é‡è¯»è´¦å·, ä»“åº“é‡Œä¸æ”¾ä»»ä½•å‡­è¯

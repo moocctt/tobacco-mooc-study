@@ -1,4 +1,4 @@
-name: userscript syntax check
+name: CI
 
 on:
   push:
@@ -7,20 +7,30 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check:
+    name: check (${{ matrix.os }}, node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node: ["20", "22"]
+        node: ["22", "24"]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: node --check
-        run: |
-          node --check userscript/tobacco-mooc-fast.user.js
-          node --check userscript/tobacco-mooc-unattended.user.js
+          cache: npm
+
+      - run: npm ci
+
+      - name: 语法检查
+        run: npm run check
+
+      - name: 单元测试（面板 / 引擎 / 互斥 / 配额）
+        run: npm run test:unit

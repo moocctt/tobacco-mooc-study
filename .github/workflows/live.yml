@@ -2,6 +2,10 @@ name: Live smoke
 
 # 真机只读冒烟：登录 → 拉任务 → 取章节，不提交任何学习进度，不消耗学时配额。
 # 需要仓库 Secrets：MOOC_USERNAME / MOOC_PASSWORD。没配就跳过，不会失败。
+#
+# 注意：mooc.ctt.cn 前置了阿里云 WAF，对境外/机房出口 IP 直接返回 405（连 GET / 都是 405），
+# 所以 GitHub 托管 runner 上只能跑到「出口 IP 被拒」的 SKIP。要真跑，加一台大陆网络的自托管
+# runner，然后在仓库 Variables 里设 LIVE_RUNNER=self-hosted（或你的 runner 标签）。
 on:
   schedule:
     # 每天 01:00 UTC = 09:00 CST
@@ -14,7 +18,7 @@ permissions:
 jobs:
   live:
     name: live (mooc.ctt.cn)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LIVE_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
 

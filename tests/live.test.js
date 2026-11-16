@@ -1,5 +1,8 @@
 // 真机冒烟测试：只读，不提交任何学习进度，不消耗学时配额。
 // 需要环境变量 MOOC_USERNAME / MOOC_PASSWORD；没有就跳过（fork 和 PR 上不会失败）。
+//
+// 注意：mooc.ctt.cn 前置了阿里云 WAF，对境外/机房出口 IP 直接返回 405（连 GET / 都是 405）。
+// 所以 GitHub 托管 runner 跑不通，会走到「出口 IP 被拒」的 SKIP 分支；要真跑得用大陆网络的自托管 runner。
 const { suite } = require("./lib/tap");
 const { KINDS, loadEngine } = require("./lib/userscript");
 
@@ -52,7 +55,12 @@ async function runOne(kind) {
 
   const ok = await api.relogin();
   t.ok("登录成功", !!ok, JSON.stringify(ok).slice(0, 200));
-  if (!ok) return;
+  if (!ok) {
+    // 失败时把内部日志打出来，否则 CI 里只看到一句 null，无从判断是密码错还是被 WAF 拦
+    console.log("  内部日志：");
+    for (const line of log) console.log("    " + line);
+    return;
+  }
 
   const [code, body] = await api.req("GET", API.TASKS, { params: { page: 1, pageSize: 5, status: "", filterAuthExam: 1 } });
   t.check("任务列表 HTTP 200", code, 200);
@@ -84,6 +92,20 @@ async function runOne(kind) {
 }
 
 (async () => {
+  // 先探一下出口 IP 能不能碰到站点：WAF 会直接给 405，那就没必要继续了
+  const { ORIGIN } = loadEngine(KINDS[0]);
+  let probe = 0;
+  try {
+    const r = await fetch(ORIGIN + "/", { headers: { "User-Agent": UA } });
+    probe = r.status;
+  } catch (e) {
+    probe = 0;
+  }
+  if (probe !== 200) {
+    console.log(`SKIP 站点拒绝该出口 IP（GET ${ORIGIN}/ → ${probe}），真机测试需要在中国大陆网络环境运行`);
+    process.exit(0);
+  }
+
   for (const kind of KINDS) {
     try {
       await runOne(kind);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.8
+// @version      0.0.9
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -1216,9 +1216,12 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     }
     return null;
   }
+  function onStudyPage(courseId) {
+    return /\/study\/course\/detail\//.test(location.hash) && location.hash.includes(courseId);
+  }
   async function playSection(sec, { courseId, depth }) {
     panel.log(`\u25B6 \u64AD\u653E: ${sec.name}`);
-    if (!location.hash.includes(courseId)) location.hash = `#/study/course/detail/1&${courseId}`;
+    if (!onStudyPage(courseId)) location.hash = `#/study/course/detail/1&${courseId}`;
     const media = await waitFor(() => document.querySelector("video, audio"), 2e4);
     if (!media) return [false, "\u64AD\u653E\u9875\u672A\u51FA\u73B0\u64AD\u653E\u5668"];
     const item = findSectionItem(sec.name);
@@ -1260,7 +1263,17 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       const dur = m && m.duration || sec.totalTime || 0;
       const loc = Number(p && p.lessonLocation) || 0;
       const cur = m && isFinite(m.currentTime) ? m.currentTime : loc;
-      if (dur && (loc >= dur - 5 || cur >= dur - 5)) return [true, "\u64AD\u653E\u5B8C\u6210"];
+      if (dur && (loc >= dur - 5 || cur >= dur - 5)) {
+        // \u64AD\u653E\u5230\u5E95 \u4E0D\u7B49\u4E8E\u5E73\u53F0\u8BB0\u4E0A\u4E86: \u5B83\u81EA\u5DF1\u5199\u5E93\u6709\u5EF6\u8FDF, \u591A\u7B49\u51E0\u5341\u79D2
+        panel.log("\u64AD\u653E\u5230\u5E95, \u7B49\u5E73\u53F0\u7ED3\u7B97\u2026");
+        for (let i = 0; i < 8; i++) {
+          if (state.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
+          await new Promise((r) => setTimeout(r, 5e3));
+          const q = await chapterProgress(courseId, sec.id).catch(() => null);
+          if (q && DONE.has(q.finishStatus)) return [true, "\u64AD\u653E\u5B8C\u6210"];
+        }
+        return [false, "\u5E73\u53F0\u672A\u8BB0\u5F55\u5B8C\u6210"];
+      }
       if (cur === lastLoc) stalls++;
       else stalls = 0;
       if (stalls >= 2 && m && m.paused && !m.ended) {
@@ -1288,7 +1301,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   }
   var DOC_WAIT_MS = 120e3;
   async function openSectionItem(sec, courseId) {
-    if (!location.hash.includes(courseId)) location.hash = `#/study/course/detail/1&${courseId}`;
+    if (!onStudyPage(courseId)) location.hash = `#/study/course/detail/1&${courseId}`;
     const ok = await waitFor(() => document.querySelector("video, audio") || findSectionItem(sec.name), 2e4);
     if (!ok) return false;
     const item = findSectionItem(sec.name);
@@ -1316,7 +1329,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   }
   async function settleWith(parentId, childId, sectionId) {
     panel.log("\u21BB \u6253\u5F00\u7236\u8BFE\u7A0B\u9875, \u7B49\u5E73\u53F0\u81EA\u884C\u7ED3\u7B97");
-    if (!location.hash.includes(parentId)) location.hash = `#/study/course/detail/1&${parentId}`;
+    if (!onStudyPage(parentId)) location.hash = `#/study/course/detail/1&${parentId}`;
     for (let i = 0; i < 6; i++) {
       if (state.stopFlag) return false;
       await new Promise((r) => setTimeout(r, 5e3));

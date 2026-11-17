@@ -2,6 +2,8 @@
   "name": "tobacco-mooc-userscripts",
   "private": true,
   "scripts": {
+    "changelog": "node scripts/changelog.js",
+    "changelog:check": "node scripts/changelog.js --check",
     "test": "node tests/runner.js",
     "check": "node --check userscript/tobacco-mooc-unattended.user.js && node --check userscript/tobacco-mooc-fast.user.js"
   },

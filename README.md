@@ -160,6 +160,9 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 │   ├── hero.svg                         # 头图：两模式面板对照
 │   ├── pacing.svg                       # 学时 / 真实时间曲线
 │   └── flow.svg                         # 上报链路
+├── scripts/
+│   └── changelog.js                    # 从 git 历史生成 CHANGELOG.md
+├── CHANGELOG.md                        # 更新日志（自动生成，勿手改）
 ├── .gitignore
 └── README.md
 ```
@@ -167,6 +170,18 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），11 个模块完全共用：
 `token` `constants` `aes` `fingerprint` `util` `api` `engine` `lock` `guard` `panel` `routes`，
 差异只在入口与播放器。
+
+## 更新日志
+
+`CHANGELOG.md` 由 GitHub Actions 自动维护：每次推送 `main`，`.github/workflows/changelog.yml` 会重新生成并提交，提交信息带 `[skip changelog]` 以防自我触发。
+版本分节取自 userscript 的 `@version`——脚本靠它触发脚本站更新，所以升版之后的提交归入「未发布」。
+
+本地手动生成：
+
+```bash
+npm run changelog        # 重写 CHANGELOG.md
+npm run changelog:check  # 校验是否最新（不一致时退出码 1）
+```
 
 ## 免责
 

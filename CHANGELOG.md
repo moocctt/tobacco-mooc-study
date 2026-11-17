@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.7 — 2026-11-17
+
+### 修复
+
+- **unattended**: 副行改「已播」并按 1:1 剩余时间显示 ETA (#17) ([ce8bd0e](https://github.com/moocctt/tobacco-mooc-study/commit/ce8bd0ece62e01049d67c9579dce51a080de0844))
+
 ## 0.0.6 — 2026-11-17
 
 ### 新功能

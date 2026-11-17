@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.7
+// @version      0.0.8
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -1227,16 +1227,41 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     reqWakeLock();
     const deadline = Date.now() + (media.duration || 3600) * 1e3 * 2 + 3e5;
     let lastPct = 0, lastLoc = -1, stalls = 0;
+    function syncProgress(depth2) {
+      const mm = document.querySelector("video, audio");
+      if (!mm) return;
+      const d = mm.duration, c = mm.currentTime;
+      if (!d || !isFinite(d) || !isFinite(c)) return;
+      const frac = Math.min(1, c / d);
+      const nt = Math.max(0, Number(state.prog.nestedTotal) || 0);
+      state.prog.sectionSec = Math.trunc(c);
+      state.prog.sectionTotalSec = Math.trunc(d);
+      state.prog.curFrac = depth2 > 0 && nt ? Math.min(1, ((Number(state.prog.nestedDone) || 0) + frac) / nt) : frac;
+      // 1:1 真实播放，剩余时间就是播放器剩余秒数
+      state.prog.etaMs = c > 0 ? Math.max(0, (d - c) * 1e3) : null;
+      panel.ui();
+      const pct = Math.trunc(c / d * 100 / 20) * 20;
+      if (pct > lastPct) {
+        lastPct = pct;
+        panel.log(`\u23F3 ${sec.name} ${pct}%`);
+      }
+    }
     while (Date.now() < deadline) {
       if (state.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
-      await new Promise((r) => setTimeout(r, 1e4));
+      // 每秒刷一次面板：用播放器真实位置，不等平台间歇写入的 lessonLocation
+      for (let t = 0; t < 10; t++) {
+        if (state.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
+        await new Promise((r) => setTimeout(r, 1e3));
+        syncProgress(depth);
+      }
       const p = await chapterProgress(courseId, sec.id).catch(() => null);
       if (p && DONE.has(p.finishStatus)) return [true, "\u64AD\u653E\u5B8C\u6210"];
       const m = document.querySelector("video, audio");
       const dur = m && m.duration || sec.totalTime || 0;
       const loc = Number(p && p.lessonLocation) || 0;
-      if (dur && loc >= dur - 5) return [true, "\u64AD\u653E\u5B8C\u6210"];
-      if (loc === lastLoc) stalls++;
+      const cur = m && isFinite(m.currentTime) ? m.currentTime : loc;
+      if (dur && (loc >= dur - 5 || cur >= dur - 5)) return [true, "\u64AD\u653E\u5B8C\u6210"];
+      if (cur === lastLoc) stalls++;
       else stalls = 0;
       if (stalls >= 2 && m && m.paused && !m.ended) {
         stalls = 0;
@@ -1245,22 +1270,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         });
         panel.log("\u21BB \u64AD\u653E\u5DF2\u6682\u505C, \u7EE7\u7EED\u64AD\u653E");
       }
-      lastLoc = loc;
-      if (dur) {
-        const frac = Math.min(1, loc / dur);
-        const nt = Math.max(0, Number(state.prog.nestedTotal) || 0);
-        state.prog.sectionSec = loc;
-        state.prog.sectionTotalSec = dur;
-        state.prog.curFrac = depth > 0 && nt ? Math.min(1, ((Number(state.prog.nestedDone) || 0) + frac) / nt) : frac;
-        // 1:1 真实播放，剩余时间就是视频剩余秒数；不用平台进度反推（它间歇写入，早期会放大成几小时）
-        state.prog.etaMs = loc > 0 ? Math.max(0, (dur - loc) * 1e3) : null;
-        panel.ui();
-        const pct = Math.trunc(loc / dur * 100 / 20) * 20;
-        if (pct > lastPct) {
-          lastPct = pct;
-          panel.log(`\u23F3 ${sec.name} ${pct}%`);
-        }
-      }
+      lastLoc = cur;
       if (m && m.ended) {
         continue;
       } else if (!m) {

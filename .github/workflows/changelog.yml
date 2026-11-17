@@ -1,0 +1,53 @@
+name: changelog
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: changelog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    # 机器人自己提交的那次不再触发，避免无限循环
+    if: ${{ !contains(github.event.head_commit.message, '[skip changelog]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 生成 CHANGELOG.md
+        run: node scripts/changelog.js
+
+      - name: 有变化就提交
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md 无变化，跳过提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): 自动更新 [skip changelog]"
+          git push
+
+      - name: 变更摘要
+        run: |
+          {
+            echo "### CHANGELOG"
+            echo ""
+            echo '```diff'
+            git show --stat --oneline HEAD -- CHANGELOG.md || true
+            echo '```'
+            head -40 CHANGELOG.md
+          } >> "$GITHUB_STEP_SUMMARY"

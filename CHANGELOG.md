@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.8 — 2026-11-18
+
+### 修复
+
+- **unattended**: 副行进度跟随播放器而不是平台记录位置 (#18) ([2b752ff](https://github.com/moocctt/tobacco-mooc-study/commit/2b752ff5a98f84611de2b68cc638bb96356e43f1))
+
 ## 0.0.7 — 2026-11-17
 
 ### 修复

@@ -87,7 +87,7 @@ function versionAt(hash) {
 
 function parseCommit(c) {
   const m = c.subject.match(/^(\w+)(?:\(([^)]+)\))?(!)?:\s*(.+)$/);
-  const breaking = Boolean(m && m[3]) || /BREAKING[ -]CHANGE/.test(c.body);
+  const breaking = Boolean(m && m[3]) || /^BREAKING[ -]CHANGE:/im.test(c.body);
   const type = m ? m[1].toLowerCase() : "";
   return {
     ...c,
@@ -139,6 +139,7 @@ function build() {
   for (let i = 0; i < commits.length; i++) {
     const c = commits[i];
     if (c.isReleaseChore) continue; // 纯升版提交不列条
+    if (/^docs\(changelog\)/i.test(c.subject)) continue; // 机器人自己写的更新日志提交
     const version = i < newestBumpIdx ? UNRELEASED : (c.version || UNRELEASED);
     push(version, c);
   }

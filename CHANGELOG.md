@@ -7,6 +7,10 @@
 
 > 已合并但尚未升版（当前发布版为 0.0.5）。
 
+### 新功能
+
+- **ci**: 用 GitHub Actions 自动生成 CHANGELOG (#14) ([c12043a](https://github.com/moocctt/tobacco-mooc-study/commit/c12043a4bf37096dd3b42f9cf9671932310734b2))
+
 ### 修复
 
 - 修幽灵锁误报与停止按钮文案滞后 (#13) ([0ae6287](https://github.com/moocctt/tobacco-mooc-study/commit/0ae62871f60ff490e81d9c7f1580d4068a814bc9))

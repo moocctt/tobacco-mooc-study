@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.6
+// @version      0.0.7
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -822,6 +822,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     emoji,
     verb,
     consoleTag,
+    submittedWord = "\u5DF2\u62A5",
     state: state2,
     lockOwner,
     currentBid: currentBid2,
@@ -897,8 +898,8 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           if (state2.round) bits.push(`\u7B2C ${state2.round} \u8F6E`);
           const tot = Math.trunc(Number(p.sectionTotalSec) || 0);
           const sub = Math.trunc(Number(state2.submitted) || 0);
-          if (tot) bits.push(`\u5DF2\u62A5 ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
-          else if (sub) bits.push(`\u5DF2\u62A5 ${sub}s`);
+          if (tot) bits.push(`${submittedWord} ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
+          else if (sub) bits.push(`${submittedWord} ${sub}s`);
           const eta = fmtEta(p.etaMs);
           if (eta) bits.push(eta);
         }

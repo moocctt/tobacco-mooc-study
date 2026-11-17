@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.6
+// @version      0.0.7
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -826,6 +826,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     emoji,
     verb,
     consoleTag,
+    submittedWord = "\u5DF2\u62A5",
     state: state2,
     lockOwner,
     currentBid: currentBid2,
@@ -901,8 +902,8 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           if (state2.round) bits.push(`\u7B2C ${state2.round} \u8F6E`);
           const tot = Math.trunc(Number(p.sectionTotalSec) || 0);
           const sub = Math.trunc(Number(state2.submitted) || 0);
-          if (tot) bits.push(`\u5DF2\u62A5 ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
-          else if (sub) bits.push(`\u5DF2\u62A5 ${sub}s`);
+          if (tot) bits.push(`${submittedWord} ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
+          else if (sub) bits.push(`${submittedWord} ${sub}s`);
           const eta = fmtEta(p.etaMs);
           if (eta) bits.push(eta);
         }
@@ -1225,7 +1226,6 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     reqWakeLock();
     reqWakeLock();
     const deadline = Date.now() + (media.duration || 3600) * 1e3 * 2 + 3e5;
-    const playT0 = Date.now();
     let lastPct = 0, lastLoc = -1, stalls = 0;
     while (Date.now() < deadline) {
       if (state.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
@@ -1247,13 +1247,13 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       }
       lastLoc = loc;
       if (dur) {
-        const el = Date.now() - playT0;
         const frac = Math.min(1, loc / dur);
         const nt = Math.max(0, Number(state.prog.nestedTotal) || 0);
         state.prog.sectionSec = loc;
         state.prog.sectionTotalSec = dur;
         state.prog.curFrac = depth > 0 && nt ? Math.min(1, ((Number(state.prog.nestedDone) || 0) + frac) / nt) : frac;
-        state.prog.etaMs = loc > 0 && el > 1500 ? Math.max(0, (dur - loc) / (loc / el)) : null;
+        // 1:1 真实播放，剩余时间就是视频剩余秒数；不用平台进度反推（它间歇写入，早期会放大成几小时）
+        state.prog.etaMs = loc > 0 ? Math.max(0, (dur - loc) * 1e3) : null;
         panel.ui();
         const pct = Math.trunc(loc / dur * 100 / 20) * 20;
         if (pct > lastPct) {
@@ -1323,6 +1323,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     emoji: "\u25B6",
     verb: "\u5B66\u4E60",
     consoleTag: "\u65E0\u4EBA\u503C\u5B88",
+    submittedWord: "\u5DF2\u64AD",
     state,
     lockOwner: lock.lockOwner,
     currentBid,

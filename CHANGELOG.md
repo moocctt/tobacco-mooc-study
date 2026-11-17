@@ -13,6 +13,7 @@
 
 ### 修复
 
+- **ci**: 修 changelog 的两处误判 (#15) ([34634be](https://github.com/moocctt/tobacco-mooc-study/commit/34634bed1f3a4bc3c8aa13cdab1382aeafd99a29))
 - 修幽灵锁误报与停止按钮文案滞后 (#13) ([0ae6287](https://github.com/moocctt/tobacco-mooc-study/commit/0ae62871f60ff490e81d9c7f1580d4068a814bc9))
 
 ## 0.0.5 — 2026-11-16

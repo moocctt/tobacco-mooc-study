@@ -14,8 +14,9 @@ concurrency:
 
 jobs:
   update:
-    # 机器人自己提交的那次不再触发，避免无限循环
-    if: ${{ !contains(github.event.head_commit.message, '[skip changelog]') }}
+    # 只跳过机器人自己的提交。不能用 contains('[skip changelog]')：squash 合并会把
+    # PR 正文并进提交信息，而正文里提到这个标记，第一次合并就把作业误跳过了。
+    if: ${{ !startsWith(github.event.head_commit.message, 'docs(changelog):') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

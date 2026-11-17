@@ -3,9 +3,13 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
-## 未发布
+## 0.0.6 — 2026-11-17
 
-> 已合并但尚未升版（当前发布版为 0.0.5）。
+### 新功能
+
+- **unattended**: 只驱动页面真实播放，不代报任何进度 (#16) ([3bf4e1a](https://github.com/moocctt/tobacco-mooc-study/commit/3bf4e1a84d7b8a55fec903f60d7123c66f4a4f62))
+
+## 0.0.5 — 2026-11-16
 
 ### 新功能
 
@@ -15,8 +19,6 @@
 
 - **ci**: 修 changelog 的两处误判 (#15) ([34634be](https://github.com/moocctt/tobacco-mooc-study/commit/34634bed1f3a4bc3c8aa13cdab1382aeafd99a29))
 - 修幽灵锁误报与停止按钮文案滞后 (#13) ([0ae6287](https://github.com/moocctt/tobacco-mooc-study/commit/0ae62871f60ff490e81d9c7f1580d4068a814bc9))
-
-## 0.0.5 — 2026-11-16
 
 ### 样式
 

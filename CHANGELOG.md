@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.9 — 2026-11-18
+
+### 修复
+
+- **unattended**: 从课程详情页启动时不再跳过播放页，播到底后等平台结算 (#19) ([e612371](https://github.com/moocctt/tobacco-mooc-study/commit/e61237156005c1117a7c02358f91bab88ad39c53))
+
 ## 0.0.8 — 2026-11-18
 
 ### 修复

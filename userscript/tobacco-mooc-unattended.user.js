@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.5
+// @version      0.0.6
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
-// @description  在学院页面上保持真实节奏的无人值守学习：按"我的任务"逐课推进，每轮上报秒数 == 真实流逝秒数；令牌失效自动重登；页面保活；考试/调研等需真实作答的类型自动跳过。非官方工具，仅供学习进度管理。
+// @description  在学院页面上保持真实节奏的无人值守学习：按"我的任务"逐课推进，只驱动页面真实播放、不代报任何进度，学时由平台自己记录；令牌失效自动重登；页面保活；考试/调研等需真实作答的类型自动跳过。非官方工具，仅供学习进度管理。
 // @author       tobacco-mooc-study
 // @match        https://mooc.ctt.cn/*
 // @noframes
@@ -373,7 +373,7 @@
   }
   function createEngine({ api: api2, state: state2, config: config2, log = () => {
   }, ui = () => {
-  }, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), lock: lock2 = null, currentBid: currentBid2 = () => "", playSection: playSection2 = null }) {
+  }, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), lock: lock2 = null, currentBid: currentBid2 = () => "", playSection: playSection2 = null, playDoc: playDoc2 = null, settleWith: settleWith2 = null }) {
     function setSectionProgress(submitted, total, t0, depth) {
       const p = state2.prog;
       if (!p) return;
@@ -489,6 +489,10 @@
         state2.section = sec.name;
         return await playSection2(sec, { courseId, depth });
       }
+      if (playDoc2 && sec.type !== NESTED) {
+        state2.section = sec.name;
+        return await playDoc2(sec, { courseId, depth });
+      }
       if (sec.type === NESTED) {
         if (depth >= 2) return [false, "\u5D4C\u5957\u8FC7\u6DF1, \u8DF3\u8FC7"];
         const parentCourse = state2.course;
@@ -499,7 +503,7 @@
         state2.versionId = parentVid;
         state2.isRegister = parentReg;
         if (done < total2) return [false, `\u5B50\u8BFE\u7A0B\u672A\u5B8C\u6210 ${done}/${total2}`];
-        const settled = await settleNested(courseId, sec.rid, sec.id);
+        const settled = settleWith2 ? await settleWith2(courseId, sec.rid, sec.id) : await settleNested(courseId, sec.rid, sec.id);
         return [settled, settled ? "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u5DF2\u7ED3\u7B97" : "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u7ED3\u7B97\u672A\u786E\u8BA4(\u7A0D\u540E\u590D\u6838)"];
       }
       const step0 = config2.getStep();
@@ -1091,21 +1095,6 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   }
 
   // src/player.js
-  function humanPointer(target, { doc = globalThis.document, MouseEventCtor = globalThis.MouseEvent } = {}) {
-    const r = target.getBoundingClientRect();
-    const x = Math.trunc(r.left + Math.random() * r.width);
-    const y = Math.trunc(r.top + Math.random() * r.height);
-    for (const type of ["mousemove", "pointermove"]) {
-      target.dispatchEvent(new MouseEventCtor(type, {
-        bubbles: true,
-        cancelable: true,
-        clientX: x,
-        clientY: y,
-        view: doc && doc.defaultView || null
-      }));
-    }
-    return { x, y };
-  }
   function startPlayerPrefs({ isRunning, log, quality = "\u666E\u6E05", intervalMs = 3e3 }) {
     const qualityTried = /* @__PURE__ */ new Map();
     function applyPlayerPrefs() {
@@ -1249,14 +1238,12 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       if (dur && loc >= dur - 5) return [true, "\u64AD\u653E\u5B8C\u6210"];
       if (loc === lastLoc) stalls++;
       else stalls = 0;
-      if (stalls >= 4 && m && !m.ended) {
+      if (stalls >= 2 && m && m.paused && !m.ended) {
         stalls = 0;
-        m.pause();
-        await new Promise((r) => setTimeout(r, 500));
         const kick = m.play();
         if (kick && kick.catch) kick.catch(() => {
         });
-        panel.log("\u21BB \u5524\u9192\u64AD\u653E\u5668\u4E0A\u62A5");
+        panel.log("\u21BB \u64AD\u653E\u5DF2\u6682\u505C, \u7EE7\u7EED\u64AD\u653E");
       }
       lastLoc = loc;
       if (dur) {
@@ -1288,6 +1275,45 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     const target = norm(name);
     const hits = Array.from(document.querySelectorAll("li, dl, a, [class*=section], [class*=chapter]")).filter((el) => norm(el.textContent).includes(target) && norm(el.textContent).length <= target.length + 20);
     return hits.sort((a, b) => norm(a.textContent).length - norm(b.textContent).length)[0] || null;
+  }
+  var DOC_WAIT_MS = 120e3;
+  async function openSectionItem(sec, courseId) {
+    if (!location.hash.includes(courseId)) location.hash = `#/study/course/detail/1&${courseId}`;
+    const ok = await waitFor(() => document.querySelector("video, audio") || findSectionItem(sec.name), 2e4);
+    if (!ok) return false;
+    const item = findSectionItem(sec.name);
+    if (item) item.click();
+    return true;
+  }
+  async function playDoc(sec, { courseId }) {
+    panel.log(`\u25B6 \u6253\u5F00: ${sec.name}`);
+    if (!(await openSectionItem(sec, courseId))) return [false, "\u5B66\u4E60\u9875\u672A\u51FA\u73B0\u8BE5\u5C0F\u8282"];
+    reqWakeLock();
+    const deadline = Date.now() + DOC_WAIT_MS;
+    let last = -1;
+    while (Date.now() < deadline) {
+      if (state.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
+      await new Promise((r) => setTimeout(r, 1e4));
+      const p = await chapterProgress(courseId, sec.id).catch(() => null);
+      if (p && DONE.has(p.finishStatus)) return [true, "\u5E73\u53F0\u5DF2\u8BB0\u5F55\u5B8C\u6210"];
+      const studied = Number(p && p.studyTotalTime) || 0;
+      if (studied > last) {
+        if (last >= 0) panel.log(`\u23F3 ${sec.name} \u5DF2\u8BB0\u5F55 ${studied}s`);
+        last = studied;
+      }
+    }
+    return [false, "\u5E73\u53F0\u672A\u8BB0\u5F55\u5B8C\u6210, \u5DF2\u653E\u5F03"];
+  }
+  async function settleWith(parentId, childId, sectionId) {
+    panel.log("\u21BB \u6253\u5F00\u7236\u8BFE\u7A0B\u9875, \u7B49\u5E73\u53F0\u81EA\u884C\u7ED3\u7B97");
+    if (!location.hash.includes(parentId)) location.hash = `#/study/course/detail/1&${parentId}`;
+    for (let i = 0; i < 6; i++) {
+      if (state.stopFlag) return false;
+      await new Promise((r) => setTimeout(r, 5e3));
+      const p = await chapterProgress(parentId, sectionId).catch(() => null);
+      if (p && DONE.has(p.finishStatus)) return true;
+    }
+    return false;
   }
   var engine;
   var panel = createPanel({
@@ -1323,7 +1349,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       }
     }
   });
-  engine = createEngine({ api, state, config, log: panel.log, ui: panel.ui, lock, currentBid, playSection });
+  engine = createEngine({ api, state, config, log: panel.log, ui: panel.ui, lock, currentBid, playSection, playDoc, settleWith });
   setInterval(() => {
     if (state.running) guard.hold(INSTANCE);
   }, 15e3);
@@ -1333,9 +1359,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   setInterval(() => {
     if (!state.running) return;
     try {
-      const v = document.querySelector("video");
-      humanPointer(v || document.body);
-      document.querySelectorAll("video").forEach((x) => {
+      document.querySelectorAll("video, audio").forEach((x) => {
         if (x.paused && !x.ended) x.play().catch(() => {
         });
       });

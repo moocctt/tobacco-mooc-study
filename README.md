@@ -150,8 +150,9 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 .
 ├── userscript/
 │   ├── tobacco-mooc-fast.user.js                    # ⚡ 快速刷课
+│   └── tobacco-mooc-unattended.user.js              # ▶ 无人值守
+├── docs/
 │   ├── tobacco-mooc-fast.additional-info.md         # ⚡ 发布页「附加说明」
-│   ├── tobacco-mooc-unattended.user.js              # ▶ 无人值守
 │   └── tobacco-mooc-unattended.additional-info.md   # ▶ 发布页「附加说明」
 ├── assets/readme/
 │   ├── hero.svg                         # 头图：两模式面板对照
@@ -161,16 +162,26 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 │   └── changelog.js                    # 从 git 历史生成 CHANGELOG.md
 ├── CHANGELOG.md                        # 更新日志（自动生成，勿手改）
 ├── .gitignore
-└── README.md
+├── README.md
+├── tests/
+│   ├── runner.js                       # 零依赖测试入口（npm test）
+│   ├── auth.test.js / authflow.test.js # 登录态与失败路径
+│   ├── engine.test.js / noreport.test.js
+│   └── subline.test.js                 # 副行文案与播放进度
+├── .github/workflows/
+│   ├── userscript-tests.yml            # 4 矩阵 CI：语法检查 + npm test
+│   ├── changelog.yml / live.yml / release.yml
 ```
 
-两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），11 个模块完全共用：
-`token` `constants` `aes` `fingerprint` `util` `api` `engine` `lock` `guard` `panel` `routes`，
+两脚本共用同一套面板与引擎；零依赖回归测试在 `tests/`，用 `npm test` 运行。
+
+两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），9 个模块完全共用：
+`token` `constants` `util` `api` `engine` `lock` `guard` `panel` `routes`，
 差异只在入口与播放器。
 
 ## 更新日志
 
-`CHANGELOG.md` 由 GitHub Actions 自动维护：每次推送 `main`，`.github/workflows/changelog.yml` 会重新生成并提交，提交信息带 `[skip changelog]` 以防自我触发。
+`CHANGELOG.md` 由 GitHub Actions 自动维护：每次推送 `main`，`.github/workflows/changelog.yml` 会重新生成并提交；机器人提交的说明以 `docs(changelog):` 开头，工作流靠这个前缀避免自我触发（`[skip changelog]` 只是兼容其他工具的标记）。
 版本分节取自 userscript 的 `@version`——脚本靠它触发脚本站更新，所以升版之后的提交归入「未发布」。
 
 本地手动生成：

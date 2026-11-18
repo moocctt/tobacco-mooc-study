@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.11
+// @version      0.0.12
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -22,10 +22,12 @@
   }, storage = typeof localStorage !== "undefined" ? localStorage : null } = {}) {
     const st = storage || { getItem: () => null };
     let token = null;
+    let tokenOrigin = "manual";
     let tokenWaiters = [];
-    function setToken(v) {
+    function setToken(v, origin = "manual") {
       if (!v || v === token) return;
       token = v;
+      tokenOrigin = origin;
       log(`\u4EE4\u724C\u5DF2\u6355\u83B7 (${v.slice(-8)})`);
       const ws = tokenWaiters;
       tokenWaiters = [];
@@ -59,7 +61,7 @@
         if (!obj || !obj.access_token) return false;
         const v = `${obj.token_type || "Bearer"}__${obj.access_token}`;
         if (v === token) return false;
-        setToken(v);
+        setToken(v, "storage");
         return true;
       } catch {
         return false;
@@ -73,7 +75,7 @@
       const origSetHeader = XHR.prototype.setRequestHeader;
       XHR.prototype.setRequestHeader = function(k, v) {
         try {
-          if (/^authorization$/i.test(k) && /^Bearer/.test(String(v))) setToken(String(v));
+          if (/^authorization$/i.test(k) && /^Bearer/.test(String(v))) setToken(String(v), "hook");
         } catch {
         }
         return origSetHeader.call(this, k, v);
@@ -84,14 +86,14 @@
           if (h) {
             const get = (k) => typeof h.get === "function" ? h.get(k) : h[k];
             const v = get("Authorization") || get("authorization");
-            if (v && /^Bearer/.test(String(v))) setToken(String(v));
+            if (v && /^Bearer/.test(String(v))) setToken(String(v), "hook");
           }
         } catch {
         }
         return origFetch.apply(this, arguments);
       };
     }
-    return { getToken: () => token, setToken, waitToken, tokenFromStorage, installHooks };
+    return { getToken: () => token, tokenOrigin: () => tokenOrigin, setToken, waitToken, tokenFromStorage, installHooks };
   }
 
   // src/constants.js
@@ -170,9 +172,10 @@
       const authError = res.status === 401 || body && AUTH_CODES.has(body.errorCode);
       if (authError && !retried) {
         const before = hunter2.getToken();
-        hunter2.tokenFromStorage();
+        // 页面自己请求里捕获的令牌比 localStorage 新，不能回读旧值把它降级
+        if (!hunter2.tokenOrigin || hunter2.tokenOrigin() !== "hook") hunter2.tokenFromStorage();
         if (hunter2.getToken() && hunter2.getToken() !== before) {
-          log("\u5DF2\u56DE\u8BFB localStorage \u4E2D\u7684\u65B0\u9C9C\u4EE4\u724C, \u91CD\u8BD5\u8BF7\u6C42");
+          log("\u5DF2\u6355\u83B7\u5230\u65B0\u4EE4\u724C, \u91CD\u8BD5\u8BF7\u6C42");
           return req(method, path, { params, data }, true);
         }
         log("\u767B\u5F55\u6001\u5931\u6548, \u8BF7\u5237\u65B0\u9875\u9762\u91CD\u65B0\u767B\u5F55");
@@ -181,7 +184,7 @@
         throw err;
       }
       if (authError) {
-        const err = new Error(`登录态失效 (HTTP ${res.status}) —— 已重试仍失败, 请刷新页面重新登录`);
+        const err = new Error(body && body.errorCode ? `登录态失效 (errorCode ${body.errorCode}) —— 已重试仍失败, 请刷新页面重新登录` : `登录态失效 (HTTP ${res.status}) —— 已重试仍失败, 请刷新页面重新登录`);
         err.auth = true;
         throw err;
       }
@@ -1007,6 +1010,9 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null } };
   var hunter = createTokenHunter({ log: (m) => panel.log(m) }); // panel.log lazy ref: panel exists by boot time, so storage-restored token shows in panel too
   var api = createApi({ hunter, log: (m) => panel.log(m) });
+  // 旧版本把明文账密存进了 GM；脚本已不再使用，启动即清除
+  gm.deleteValue("account");
+  gm.deleteValue("companyName");
   var config = {
     getStep: () => 30,
     // 每轮上报 30s
@@ -1281,6 +1287,13 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     if (!isStudyPage(location.hash) || state.running) return;
     let fails = 0;
     try {
+      // 重新登录后令牌会变：旧计数不该把「自动续跑」永久锁死
+      const tok = typeof hunter !== "undefined" && hunter && hunter.getToken ? (hunter.getToken() || "") : "";
+      const seen = sessionStorage.getItem("__MOOC_US_AUTO_TOKEN__") || "";
+      if (tok && seen !== tok) {
+        sessionStorage.setItem("__MOOC_US_AUTO_TOKEN__", tok);
+        sessionStorage.removeItem("__MOOC_US_AUTO_FAILS__");
+      }
       fails = Number(sessionStorage.getItem("__MOOC_US_AUTO_FAILS__")) || 0;
     } catch {
     }

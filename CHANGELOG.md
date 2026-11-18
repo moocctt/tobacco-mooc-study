@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.16 — 2026-11-18
+
+### 新功能
+
+- **ui**: 运行时按钮悬停显示停止 (#26) ([ee4fb40](https://github.com/moocctt/tobacco-mooc-study/commit/ee4fb4093a757e8cac37fc14a46ed4d98c0b2c77))
+
 ## 0.0.15 — 2026-11-18
 
 ### 新功能

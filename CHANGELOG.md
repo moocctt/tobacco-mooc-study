@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.10 — 2026-11-18
+
+### 杂务
+
+- **panel**: 移除面板深色主题 (#20) ([e9b8ea0](https://github.com/moocctt/tobacco-mooc-study/commit/e9b8ea09fcf0cdac4cbe9d3861fe0e6b8937ba78))
+
 ## 0.0.9 — 2026-11-18
 
 ### 修复

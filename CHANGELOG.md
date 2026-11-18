@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.20 — 2026-11-19
+
+### 修复
+
+- 核验服务端学时，未入账停止空转 (#30) ([c2db443](https://github.com/moocctt/tobacco-mooc-study/commit/c2db4435c3fce6497941cf00a9288b451d175084))
+
 ## 0.0.19 — 2026-11-18
 
 ### 修复

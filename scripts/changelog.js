@@ -140,6 +140,7 @@ function build() {
     const c = commits[i];
     if (c.isReleaseChore) continue; // 纯升版提交不列条
     if (/^docs\(changelog\)/i.test(c.subject)) continue; // 机器人自己写的更新日志提交
+    if (/^test(?:\([^)]*\))?:/i.test(c.subject)) continue; // 纯测试提交不改变发布内容
     const version = i < newestBumpIdx ? UNRELEASED : (c.version || UNRELEASED);
     push(version, c);
   }

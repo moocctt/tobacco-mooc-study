@@ -63,13 +63,9 @@ function makeEngine() {
   ]) {
     const logs = [];
     const timers = [];
-    const fakeLoc = { reload: () => timers.push("reload") };
-    timers.length = 0;
-    const reloaded = new Promise((resolve) => {
-      runHandler(r, { log: (m) => logs.push(m) }, { stopFlag: false }, (fn, ms) => { timers.push(ms); if (typeof fn === "function") fn(); }, { reload: () => resolve(true) });
-      setTimeout(() => resolve(timers.includes("reload")), 20);
-    });
-    check(name, (await reloaded) === wantReload, JSON.stringify({ timers, logs }));
+    let reloaded = false;
+    runHandler(r, { log: (m) => logs.push(m) }, { stopFlag: false }, (fn, ms) => { timers.push(ms); if (typeof fn === "function") fn(); }, { reload: () => { reloaded = true; } });
+    check(name, reloaded === wantReload, JSON.stringify({ timers, logs, reloaded }));
     if (name === "authFailed 不刷新") check("authFailed 给出提示", logs.some((m) => /不自动刷新/.test(m)), JSON.stringify(logs));
   }
 
@@ -81,22 +77,29 @@ function makeEngine() {
     const fnSrc = src.slice(s, e);
     check("autoContinue 不调用 location.reload", !/location\.reload\s*\(/.test(fnSrc));
     const makeAuto = new Function("gm", "isStudyPage", "state", "sessionStorage", "panel", "setTimeout", "engine", "location", fnSrc + "\nreturn autoContinue;");
-    const saved = [];
-    const autoLogs = [];
-    let reloaded = false;
-    const auto = makeAuto(
-      { getValue: () => true },
-      () => true,
-      { running: false },
-      { getItem: () => "2", setItem: (k, v) => saved.push(v), removeItem: () => {} },
-      { log: (m) => autoLogs.push(m) },
-      (fn) => fn(),
-      { runAll: async () => ({ ok: false, authFailed: true }) },
-      { reload: () => { reloaded = true; } },
-    );
-    await auto();
-    await Promise.resolve();
-    check("autoContinue 的 auth 失败只计数不刷新", !reloaded && saved.includes("3"), JSON.stringify({ reloaded, saved, autoLogs }));
+    const runAuto = async (r, fails) => {
+      const saved = [];
+      let removed = false;
+      let reloaded = false;
+      const autoLogs = [];
+      const auto = makeAuto(
+        { getValue: () => true },
+        () => true,
+        { running: false },
+        { getItem: () => fails, setItem: (k, v) => saved.push(v), removeItem: () => { removed = true; } },
+        { log: (m) => autoLogs.push(m) },
+        (fn) => fn(),
+        { runAll: async () => r },
+        { reload: () => { reloaded = true; } },
+      );
+      await auto();
+      for (let i = 0; i < 4; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+      return { reloaded, saved, removed, autoLogs };
+    };
+    const bad = await runAuto({ ok: false, authFailed: true }, "2");
+    check("autoContinue 的 auth 失败只计数不刷新", !bad.reloaded && bad.saved.includes("3"), JSON.stringify(bad));
+    const good = await runAuto({ ok: true }, "2");
+    check("autoContinue 成功后清除失败计数且不刷新", !good.reloaded && good.removed && good.saved.length === 0, JSON.stringify(good));
   }
 
   console.log(out.join("\n"));

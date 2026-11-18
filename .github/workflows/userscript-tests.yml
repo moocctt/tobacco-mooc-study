@@ -24,3 +24,5 @@ jobs:
         run: |
           node --check userscript/tobacco-mooc-fast.user.js
           node --check userscript/tobacco-mooc-unattended.user.js
+      - name: unit tests
+        run: npm test

@@ -150,8 +150,9 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 .
 ├── userscript/
 │   ├── tobacco-mooc-fast.user.js                    # ⚡ 快速刷课
+│   └── tobacco-mooc-unattended.user.js              # ▶ 无人值守
+├── docs/
 │   ├── tobacco-mooc-fast.additional-info.md         # ⚡ 发布页「附加说明」
-│   ├── tobacco-mooc-unattended.user.js              # ▶ 无人值守
 │   └── tobacco-mooc-unattended.additional-info.md   # ▶ 发布页「附加说明」
 ├── assets/readme/
 │   ├── hero.svg                         # 头图：两模式面板对照
@@ -164,8 +165,8 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 └── README.md
 ```
 
-两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），11 个模块完全共用：
-`token` `constants` `aes` `fingerprint` `util` `api` `engine` `lock` `guard` `panel` `routes`，
+两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），9 个模块完全共用：
+`token` `constants` `util` `api` `engine` `lock` `guard` `panel` `routes`，
 差异只在入口与播放器。
 
 ## 更新日志

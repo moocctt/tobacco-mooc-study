@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.11
+// @version      0.0.12
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -181,7 +181,7 @@
         throw err;
       }
       if (authError) {
-        const err = new Error(`登录态失效 (HTTP ${res.status}) —— 已重试仍失败, 请刷新页面重新登录`);
+        const err = new Error(body && body.errorCode ? `登录态失效 (errorCode ${body.errorCode}) —— 已重试仍失败, 请刷新页面重新登录` : `登录态失效 (HTTP ${res.status}) —— 已重试仍失败, 请刷新页面重新登录`);
         err.auth = true;
         throw err;
       }
@@ -1007,6 +1007,9 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null } };
   var hunter = createTokenHunter({ log: (m) => panel.log(m) }); // panel.log lazy ref: panel exists by boot time, so storage-restored token shows in panel too
   var api = createApi({ hunter, log: (m) => panel.log(m) });
+  // 旧版本把明文账密存进了 GM；脚本已不再使用，启动即清除
+  gm.deleteValue("account");
+  gm.deleteValue("companyName");
   var config = {
     getStep: () => 30,
     // 每轮上报 30s

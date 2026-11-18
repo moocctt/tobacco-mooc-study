@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.12
+// @version      0.0.13
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -720,14 +720,32 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       const overall = coursesTotal > 1 ? Math.min(1, ((Number(p.coursesDone) || 0) + courseFrac) / coursesTotal) : courseFrac;
       return { pct: Math.round(overall * 100), secTotal, coursesTotal };
     }
+    function etaSense(ms) {
+      const m = ms / 6e4;
+      if (m < 0.15) return "\u4E00\u7728\u773C";
+      if (m < 1) return "\u559D\u53E3\u6C34\u7684\u529F\u592B";
+      if (m < 5) return "\u4E00\u9996\u6B4C";
+      if (m < 15) return "\u4E00\u676F\u5496\u5561";
+      if (m < 45) return "\u4E00\u96C6\u77ED\u5267";
+      if (m < 100) return "\u4E00\u96C6\u7535\u89C6\u5267";
+      if (m < 180) return "\u4E00\u573A\u7535\u5F71";
+      if (m < 480) return "\u5927\u534A\u5929";
+      return "\u7761\u4E00\u89C9";
+    }
     function fmtEta(ms) {
       if (!(ms > 1e3)) return "";
       const s = Math.round(ms / 1e3);
-      if (s < 60) return `\u7EA6 ${s} \u79D2`;
-      const m = Math.round(s / 60);
-      if (m < 60) return `\u7EA6 ${m} \u5206`;
-      const h = Math.floor(m / 60), rm = m % 60;
-      return rm ? `\u7EA6 ${h} \u5C0F\u65F6 ${rm} \u5206` : `\u7EA6 ${h} \u5C0F\u65F6`;
+      let exact;
+      if (s < 60) exact = `\u7EA6 ${s} \u79D2`;
+      else {
+        const m = Math.round(s / 60);
+        if (m < 60) exact = `\u7EA6 ${m} \u5206`;
+        else {
+          const h = Math.floor(m / 60), rm = m % 60;
+          exact = rm ? `\u7EA6 ${h} \u5C0F\u65F6 ${rm} \u5206` : `\u7EA6 ${h} \u5C0F\u65F6`;
+        }
+      }
+      return `${exact} \xB7 ${etaSense(ms)}`;
     }
     function ui() {
       if (!statusEl) return;
@@ -761,6 +779,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           if (eta) bits.push(eta);
         }
         subEl.textContent = bits.join(" \xB7 ");
+        subEl.title = subEl.textContent;
         subEl.style.display = bits.length ? "" : "none";
       }
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";

@@ -162,7 +162,16 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 │   └── changelog.js                    # 从 git 历史生成 CHANGELOG.md
 ├── CHANGELOG.md                        # 更新日志（自动生成，勿手改）
 ├── .gitignore
-└── README.md
+├── README.md
+│   └── 两脚本共用同一套面板与引擎，测试见 tests/
+├── tests/
+│   ├── runner.js                       # 零依赖测试入口（npm test）
+│   ├── auth.test.js / authflow.test.js # 登录态与失败路径
+│   ├── engine.test.js / noreport.test.js
+│   └── subline.test.js                 # 副行文案与播放进度
+├── .github/workflows/
+│   ├── userscript-tests.yml            # 4 矩阵 CI：语法检查 + npm test
+│   ├── changelog.yml / live.yml / release.yml
 ```
 
 两个 `.user.js` 是打包产物（单文件 IIFE，内部按 `// src/xxx.js` 分段），9 个模块完全共用：

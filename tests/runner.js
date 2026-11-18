@@ -1,5 +1,4 @@
 // 零依赖测试入口：node tests/runner.js
-// 面板 DOM 测试需要 jsdom，单独放 tests/dom.test.js（有 jsdom 时才跑）。
 const { spawnSync } = require("child_process");
 const path = require("path");
 
@@ -11,7 +10,7 @@ const scripts = {
 
 let failed = 0;
 for (const [kind, file] of Object.entries(scripts)) {
-  const tests = ["auth.test.js", "engine.test.js", "subline.test.js"];
+  const tests = ["auth.test.js", "authflow.test.js", "engine.test.js", "subline.test.js"];
   if (kind === "unattended") tests.push("noreport.test.js");
   for (const t of tests) {
     const r = spawnSync(process.execPath, [path.join(__dirname, t), file], {

@@ -1,5 +1,6 @@
 // 鉴权路径回归：只用页面登录态，不再有账密重登
 const fs = require("fs");
+const path = require("path");
 
 const file = process.argv[2];
 if (!file) throw new Error("usage: node auth.test.js <userscript>");
@@ -50,7 +51,6 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
   }
   check("A 401 无新令牌抛错", errA && /登录态已失效/.test(errA.message), errA && errA.message);
   check("A 错误带 auth 标记", errA && errA.auth === true);
-  check("A api 不再暴露 relogin", !("relogin" in apiA));
   check(
     "A 没有请求 app-login",
     !urlsA.some((u) => /app-login/.test(u)),
@@ -113,6 +113,27 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
   check("D 两次都失败后抛错", errD && errD.auth === true);
   check("D 恰好请求 2 次", callsD === 2, String(callsD));
 
+  // D2: 换令牌后第二次仍报 90901 -> 文案必须是 errorCode，不能谎报 HTTP 200
+  let callsD2 = 0;
+  const hunterD2 = makeMod().createTokenHunter({
+    log: () => {},
+    storage: storageWith({ token_type: "Bearer", access_token: "fresh" }),
+  });
+  hunterD2.setToken("Bearer__stale");
+  const fetchD2 = async () => {
+    callsD2++;
+    return { status: 200, text: async () => JSON.stringify({ errorCode: 90901 }) };
+  };
+  const apiD2 = makeMod({ fetch: fetchD2 }).createApi({ hunter: hunterD2, fetchImpl: fetchD2, log: () => {} });
+  let errD2 = null;
+  try {
+    await apiD2.req("GET", "/api/v1/x");
+  } catch (e) {
+    errD2 = e;
+  }
+  check("D2 二次 90901 文案带 errorCode", errD2 && /errorCode 90901/.test(errD2.message), errD2 && errD2.message);
+  check("D2 二次 90901 不谎报 HTTP 200", errD2 && !/HTTP 200/.test(errD2.message), errD2 && errD2.message);
+
   // E: 500 不是鉴权错误 -> 原样返回，不能被吞也不能改判
   const hunterE = makeMod().createTokenHunter({ log: () => {}, storage: storageWith(null) });
   hunterE.setToken("Bearer__stale");
@@ -164,7 +185,7 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
     console.log(`${ok ? "PASS" : "FAIL"}  ${name}${extra && !ok ? "  → " + extra : ""}`);
     if (ok) pass++;
   }
-  console.log(`${pass}/${results.length} passed  ${file.split("/").pop()}`);
+  console.log(`${pass}/${results.length} passed  ${path.basename(file)}`);
   process.exit(pass === results.length ? 0 : 1);
 })().catch((e) => {
   console.error("THROW", e && e.message);

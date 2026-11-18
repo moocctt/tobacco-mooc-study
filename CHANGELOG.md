@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.12 — 2026-11-18
+
+### 修复
+
+- **auth**: 按 review-loop 反馈清理残留并把鉴权测试入库 ([7912c7e](https://github.com/moocctt/tobacco-mooc-study/commit/7912c7e071e104cf7d70b263aca7a7da1dd17393))
+
 ## 0.0.11 — 2026-11-18
 
 ### 重构

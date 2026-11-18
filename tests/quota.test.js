@@ -9,8 +9,9 @@ const a = src.indexOf("  // src/token.js");
 const b = src.indexOf("  // src/panel.js");
 if (a < 0 || b < 0) throw new Error("engine block not found");
 
-function makeEngine({ remAt, studyAt, reportBody }) {
+function makeEngine({ remAt, studyAt, reportBody, roundHardCap = 5000 }) {
   let clock = 0;
+  let reportCalls = 0;
   const FakeDate = { now: () => clock };
   const factory = new Function(
     "document", "window", "console", "location", "localStorage", "XMLHttpRequest", "fetch", "navigator", "setTimeout", "clearTimeout", "Date",
@@ -32,7 +33,7 @@ function makeEngine({ remAt, studyAt, reportBody }) {
         }] }]];
       }
       if (p.includes("/start-progress/")) return [200, { id: "log-" + String(clock), remainingTime: remAt(clock) }];
-      if (p.endsWith("/video-progress")) return [200, reportBody || { finishStatus: 0 }];
+      if (p.endsWith("/video-progress")) { reportCalls += 1; return [200, reportBody || { finishStatus: 0 }]; }
       if (p.endsWith("/course-progress-update") || p.endsWith("/course-section-progress")) return [200, {}];
       throw new Error("unexpected path " + p);
     }
@@ -56,6 +57,7 @@ function makeEngine({ remAt, studyAt, reportBody }) {
       backdateS: (s) => s,
       roundSleepMs: () => 0,
       roundsSlack: 5,
+      roundHardCap,
       taskGapMs: () => 0,
       coursePageLabel: "本课程"
     },
@@ -66,7 +68,7 @@ function makeEngine({ remAt, studyAt, reportBody }) {
     currentBid: () => "c1",
     playSection: null
   });
-  return { engine, state, logs, clock: () => clock };
+  return { engine, state, logs, clock: () => clock, reportCalls: () => reportCalls };
 }
 
 const results = [];
@@ -108,15 +110,17 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
     check("显式配额提示写入日志", logs.some((m) => /\u914D\u989D/.test(m)), logs.join(" | "));
   }
 
-  // 真配额：remainingTime 与 studyTotalTime 都不动，应在确认窗口后停下。
+  // 剩余时长长期不动也不能按配额停：继续上报，只有安全上限才结束。
   {
-    const { engine, logs } = makeEngine({
+    const { engine, logs, reportCalls } = makeEngine({
       remAt: () => 360,
-      studyAt: () => 0
+      studyAt: () => 0,
+      roundHardCap: 8
     });
     const r = await engine.runAll();
-    check("真配额仍会停下", r.quotaHit === true && r.ok === false, JSON.stringify(r));
-    check("真配额日志说明证据", logs.some((m) => /配额/.test(m)), logs.join(" | "));
+    check("剩余时长不动不判配额", r.quotaHit === false, JSON.stringify(r));
+    check("剩余时长不动仍持续上报", reportCalls() === 8, JSON.stringify({ r, reportCalls: reportCalls() }));
+    check("停止原因不是配额猜测", logs.some((m) => /安全上限/.test(m)) && !logs.some((m) => /判定当日学时配额已满/.test(m)), logs.join(" | "));
   }
 
   for (const [name, ok, extra] of results) {

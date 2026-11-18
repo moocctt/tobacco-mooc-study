@@ -10,7 +10,7 @@ const has = (s) => src.includes(s);
 const results = [];
 const check = (name, cond, extra) => results.push([name, !!cond, extra]);
 
-check("版本升级到 0.0.17", has("// @version      0.0.17"));
+check("版本升级到 0.0.18", has("// @version      0.0.18"));
 check("标题栏包含状态节点", has('class="${prefix}-headstatus"'));
 check("状态节点默认隐藏", has(".${prefix}-headstatus{display:none"));
 check("折叠时显示状态节点", has('[data-collapsed="1"] .${prefix}-headstatus{display:block}'));

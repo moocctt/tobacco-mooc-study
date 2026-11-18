@@ -10,7 +10,7 @@ const has = (s) => src.includes(s);
 const results = [];
 const check = (name, cond, extra) => results.push([name, !!cond, extra]);
 
-check("版本升级到 0.0.17", has("// @version      0.0.17"));
+check("版本升级到 0.0.18", has("// @version      0.0.18"));
 check("按钮包含停止文案节点", has('class="${prefix}-stoplabel"'));
 check("停止文案默认隐藏", has(".${prefix}-stoplabel{display:none"));
 check("运行态由 data-running 标记", has('btnStart.dataset.running = state2.running && !state2.stopFlag ? "1" : "0";'));

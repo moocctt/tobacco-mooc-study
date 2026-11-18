@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.17
+// @version      0.0.18
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -1159,6 +1159,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       }
       if (cur === lastLoc) stalls++;
       else stalls = 0;
+      if (state.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
       if (stalls >= 2 && m && m.paused && !m.ended) {
         stalls = 0;
         const kick = m.play();
@@ -1237,7 +1238,13 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     onStart: () => {
       if (state.running) {
         state.stopFlag = true;
-        panel.log("\u6B63\u5728\u505C\u6B62(\u7B49\u5F53\u524D\u8F6E\u7ED3\u675F)\u2026");
+        try {
+          document.querySelectorAll("video, audio").forEach((x) => {
+            if (!x.paused && !x.ended) x.pause();
+          });
+        } catch {
+        }
+        panel.log("\u6B63\u5728\u505C\u6B62\u5E76\u6682\u505C\u64AD\u653E\u2026");
         panel.ui();
       } else if (guard.held(INSTANCE)) {
         panel.log("\u26D4 \u53E6\u4E00\u4E2A\u6807\u7B7E\u9875\u7684\u5B66\u4E60\u811A\u672C\u6B63\u5728\u8FD0\u884C, \u4E0D\u542F\u52A8(\u9632\u591A\u5F00)");
@@ -1264,7 +1271,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   hunter.installHooks({});
   startPlayerPrefs({ isRunning: () => state.running, log: panel.log });
   setInterval(() => {
-    if (!state.running) return;
+    if (!state.running || state.stopFlag) return;
     try {
       document.querySelectorAll("video, audio").forEach((x) => {
         if (x.paused && !x.ended) x.play().catch(() => {

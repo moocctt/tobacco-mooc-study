@@ -22,10 +22,12 @@
   }, storage = typeof localStorage !== "undefined" ? localStorage : null } = {}) {
     const st = storage || { getItem: () => null };
     let token = null;
+    let tokenOrigin = "manual";
     let tokenWaiters = [];
-    function setToken(v) {
+    function setToken(v, origin = "manual") {
       if (!v || v === token) return;
       token = v;
+      tokenOrigin = origin;
       log(`\u4EE4\u724C\u5DF2\u6355\u83B7 (${v.slice(-8)})`);
       const ws = tokenWaiters;
       tokenWaiters = [];
@@ -59,7 +61,7 @@
         if (!obj || !obj.access_token) return false;
         const v = `${obj.token_type || "Bearer"}__${obj.access_token}`;
         if (v === token) return false;
-        setToken(v);
+        setToken(v, "storage");
         return true;
       } catch {
         return false;
@@ -73,7 +75,7 @@
       const origSetHeader = XHR.prototype.setRequestHeader;
       XHR.prototype.setRequestHeader = function(k, v) {
         try {
-          if (/^authorization$/i.test(k) && /^Bearer/.test(String(v))) setToken(String(v));
+          if (/^authorization$/i.test(k) && /^Bearer/.test(String(v))) setToken(String(v), "hook");
         } catch {
         }
         return origSetHeader.call(this, k, v);
@@ -84,14 +86,14 @@
           if (h) {
             const get = (k) => typeof h.get === "function" ? h.get(k) : h[k];
             const v = get("Authorization") || get("authorization");
-            if (v && /^Bearer/.test(String(v))) setToken(String(v));
+            if (v && /^Bearer/.test(String(v))) setToken(String(v), "hook");
           }
         } catch {
         }
         return origFetch.apply(this, arguments);
       };
     }
-    return { getToken: () => token, setToken, waitToken, tokenFromStorage, installHooks };
+    return { getToken: () => token, tokenOrigin: () => tokenOrigin, setToken, waitToken, tokenFromStorage, installHooks };
   }
 
   // src/constants.js
@@ -170,9 +172,10 @@
       const authError = res.status === 401 || body && AUTH_CODES.has(body.errorCode);
       if (authError && !retried) {
         const before = hunter2.getToken();
-        hunter2.tokenFromStorage();
+        // 页面自己请求里捕获的令牌比 localStorage 新，不能回读旧值把它降级
+        if (!hunter2.tokenOrigin || hunter2.tokenOrigin() !== "hook") hunter2.tokenFromStorage();
         if (hunter2.getToken() && hunter2.getToken() !== before) {
-          log("\u5DF2\u56DE\u8BFB localStorage \u4E2D\u7684\u65B0\u9C9C\u4EE4\u724C, \u91CD\u8BD5\u8BF7\u6C42");
+          log("\u5DF2\u6355\u83B7\u5230\u65B0\u4EE4\u724C, \u91CD\u8BD5\u8BF7\u6C42");
           return req(method, path, { params, data }, true);
         }
         log("\u767B\u5F55\u6001\u5931\u6548, \u8BF7\u5237\u65B0\u9875\u9762\u91CD\u65B0\u767B\u5F55");

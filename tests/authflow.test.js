@@ -76,17 +76,23 @@ function makeEngine() {
     if (s < 0 || e < 0) throw new Error("autoContinue not found");
     const fnSrc = src.slice(s, e);
     check("autoContinue 不调用 location.reload", !/location\.reload\s*\(/.test(fnSrc));
-    const makeAuto = new Function("gm", "isStudyPage", "state", "sessionStorage", "panel", "setTimeout", "engine", "location", fnSrc + "\nreturn autoContinue;");
-    const runAuto = async (r, fails) => {
+    const makeAuto = new Function("gm", "hunter", "isStudyPage", "state", "sessionStorage", "panel", "setTimeout", "engine", "location", fnSrc + "\nreturn autoContinue;");
+    const runAuto = async (r, fails, token = "") => {
       const saved = [];
       let removed = false;
       let reloaded = false;
       const autoLogs = [];
+      const bag = { __MOOC_US_AUTO_FAILS__: fails };
       const auto = makeAuto(
         { getValue: () => true },
+        { getToken: () => token },
         () => true,
         { running: false },
-        { getItem: () => fails, setItem: (k, v) => saved.push(v), removeItem: () => { removed = true; } },
+        {
+          getItem: (k) => bag[k] === undefined ? null : bag[k],
+          setItem: (k, v) => { bag[k] = v; saved.push(v); },
+          removeItem: (k) => { delete bag[k]; removed = true; },
+        },
         { log: (m) => autoLogs.push(m) },
         (fn) => fn(),
         { runAll: async () => r },
@@ -100,6 +106,8 @@ function makeEngine() {
     check("autoContinue 的 auth 失败只计数不刷新", !bad.reloaded && bad.saved.includes("3"), JSON.stringify(bad));
     const good = await runAuto({ ok: true }, "2");
     check("autoContinue 成功后清除失败计数且不刷新", !good.reloaded && good.removed && good.saved.length === 0, JSON.stringify(good));
+    const tokenChanged = await runAuto({ ok: false, authFailed: true }, "3", "Bearer__new");
+    check("autoContinue 令牌变化后重置失败计数并继续", !tokenChanged.reloaded && tokenChanged.removed && tokenChanged.saved.includes("1") && !tokenChanged.autoLogs.some((m) => /已暂停/.test(m)), JSON.stringify(tokenChanged));
   }
 
   console.log(out.join("\n"));

@@ -181,7 +181,7 @@ Chrome 138 起把用户脚本收进了独立开关：打开 `chrome://extensions
 
 ## 更新日志
 
-`CHANGELOG.md` 由 GitHub Actions 自动维护：每次推送 `main`，`.github/workflows/changelog.yml` 会重新生成并提交，提交信息带 `[skip changelog]` 以防自我触发。
+`CHANGELOG.md` 由 GitHub Actions 自动维护：每次推送 `main`，`.github/workflows/changelog.yml` 会重新生成并提交；机器人提交的说明以 `docs(changelog):` 开头，工作流靠这个前缀避免自我触发（`[skip changelog]` 只是兼容其他工具的标记）。
 版本分节取自 userscript 的 `@version`——脚本靠它触发脚本站更新，所以升版之后的提交归入「未发布」。
 
 本地手动生成：

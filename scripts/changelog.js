@@ -7,6 +7,7 @@
  *     脚本站就不会推新版本，所以这些改动确实还没到用户手里。
  *   - 其余提交 → 归入它所在提交里 @version 的版本。
  *   - 纯升版提交（`chore(release)`）不单独列条，只用来定版本号与日期。
+ *   - `docs(changelog):` 是机器人自己的提交，`test:` 是纯测试提交；两者都不列条。
  *
  * 用法:
  *   node scripts/changelog.js            写 CHANGELOG.md
@@ -24,7 +25,7 @@ const FILES = [
   "userscript/tobacco-mooc-unattended.user.js",
 ];
 
-const SECTION_ORDER = ["新功能", "修复", "性能", "重构", "样式", "文档", "测试", "构建与 CI", "杂务", "回滚", "其他"];
+const SECTION_ORDER = ["新功能", "修复", "性能", "重构", "样式", "文档", "构建与 CI", "杂务", "回滚", "其他"];
 const TYPE_TO_SECTION = {
   feat: "新功能",
   fix: "修复",
@@ -32,7 +33,6 @@ const TYPE_TO_SECTION = {
   refactor: "重构",
   style: "样式",
   docs: "文档",
-  test: "测试",
   ci: "构建与 CI",
   build: "构建与 CI",
   chore: "杂务",

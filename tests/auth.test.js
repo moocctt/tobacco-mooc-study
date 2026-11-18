@@ -180,6 +180,34 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
   check("G fetch 钩子截到令牌", hunterG.getToken() === "Bearer from-fetch", String(hunterG.getToken()));
   check("G 原始 setRequestHeader 仍被调用", recorded && recorded[0] === "authorization");
 
+  // H: 页面钩子里截到的新令牌不能被 localStorage 里的旧令牌降级；也不会拿旧令牌去重试
+  const hunterH = makeMod().createTokenHunter({
+    log: () => {},
+    storage: storageWith({ token_type: "Bearer", access_token: "old-storage" }),
+  });
+  function HookXHR() {}
+  HookXHR.prototype.setRequestHeader = function () {};
+  hunterH.installHooks({
+    win: { XMLHttpRequest: HookXHR, fetch: () => Promise.resolve({ ok: true }) },
+    XMLHttpRequest: HookXHR,
+    fetch: () => Promise.resolve({ ok: true }),
+  });
+  new HookXHR().setRequestHeader("authorization", "Bearer hook-fresh");
+  let callsH = 0;
+  const fetchH = async () => {
+    callsH++;
+    return { status: 401, text: async () => "{}" };
+  };
+  const apiH = makeMod({ fetch: fetchH }).createApi({ hunter: hunterH, fetchImpl: fetchH, log: () => {} });
+  let errH = null;
+  try {
+    await apiH.req("GET", "/api/v1/x");
+  } catch (e) {
+    errH = e;
+  }
+  check("H 钩子新令牌不被 localStorage 降级", hunterH.getToken() === "Bearer hook-fresh", String(hunterH.getToken()));
+  check("H 钩子令牌鉴权失败只请求一次就抛 auth", callsH === 1 && errH && errH.auth === true, JSON.stringify({ callsH, err: errH && errH.message }));
+
   let pass = 0;
   for (const [name, ok, extra] of results) {
     console.log(`${ok ? "PASS" : "FAIL"}  ${name}${extra && !ok ? "  → " + extra : ""}`);

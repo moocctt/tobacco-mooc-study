@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.14
+// @version      0.0.15
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -236,7 +236,7 @@
   function createEngine({ api: api2, state: state2, config: config2, log = () => {
   }, ui = () => {
   }, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), lock: lock2 = null, currentBid: currentBid2 = () => "", playSection = null }) {
-    function setSectionProgress(submitted, total, t0, depth) {
+    function setSectionProgress(submitted, total, depth) {
       const p = state2.prog;
       if (!p) return;
       p.sectionSec = Math.max(0, Number(submitted) || 0);
@@ -244,12 +244,6 @@
       const frac = p.sectionTotalSec ? Math.min(1, p.sectionSec / p.sectionTotalSec) : 0;
       const nt = Math.max(0, Number(p.nestedTotal) || 0);
       p.curFrac = depth > 0 && nt ? Math.min(1, ((Number(p.nestedDone) || 0) + frac) / nt) : frac;
-      const elapsed = t0 ? Math.max(1, Date.now() - t0) : 0;
-      const remaining = Math.max(0, p.sectionTotalSec - p.sectionSec);
-      // 快速模式首轮常在 1.5s 内完成，仍需给出可感知的下限，避免 ETA 整段空白。
-      p.etaMs = p.sectionTotalSec && p.sectionSec > 0 && remaining > 0 && elapsed > 0
-        ? Math.max(1100, remaining / (p.sectionSec / elapsed))
-        : null;
     }
     function resetCourseProgress(secTotal) {
       const p = state2.prog;
@@ -261,7 +255,6 @@
       p.sectionTotalSec = 0;
       p.nestedDone = 0;
       p.nestedTotal = 0;
-      p.etaMs = null;
     }
     async function undoneTasks() {
       const all = [];
@@ -375,7 +368,6 @@
         return [settled, settled ? "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u5DF2\u7ED3\u7B97" : "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u7ED3\u7B97\u672A\u786E\u8BA4(\u7A0D\u540E\u590D\u6838)"];
       }
       const step0 = config2.getStep();
-      const secT0 = Date.now();
       let total = null, submitted = 0, prevRem = null, maxRounds = 0, conflicts = 0;
       let stallSince = null, stallBaseStudy = null, stallLastPoll = 0;
       const STALL_POLL_MS = 3e4, STALL_CONFIRM_MS = 18e4;
@@ -460,7 +452,7 @@
         conflicts = 0;
         submitted += step;
         state2.submitted = submitted;
-        setSectionProgress(submitted, total, secT0, depth);
+        setSectionProgress(submitted, total, depth);
         if (courseId) await progressUpdate(courseId);
         ui();
         await sleep(Math.max(0, config2.roundSleepMs(step) - (Date.now() - roundStart)));
@@ -517,7 +509,6 @@
               if (depth === 0) {
                 state2.prog.secDone += 1;
                 state2.prog.curFrac = 0;
-                state2.prog.etaMs = null;
               } else {
                 state2.prog.nestedDone = (Number(state2.prog.nestedDone) || 0) + 1;
               }
@@ -549,7 +540,7 @@
       let failCount = 0, quotaHit = false;
       const bid = currentBid2();
       const mode = bid ? "course" : "tasks";
-      state2.prog = { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: bid ? 1 : 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null };
+      state2.prog = { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: bid ? 1 : 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0 };
       ui();
       try {
         if (bid) {
@@ -602,7 +593,6 @@
               state2.prog.curFrac = 0;
               state2.prog.sectionSec = 0;
               state2.prog.sectionTotalSec = 0;
-              state2.prog.etaMs = null;
             }
             ui();
             await sleep(config2.taskGapMs());
@@ -774,33 +764,6 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       const overall = coursesTotal > 1 ? Math.min(1, ((Number(p.coursesDone) || 0) + courseFrac) / coursesTotal) : courseFrac;
       return { pct: Math.round(overall * 100), secTotal, coursesTotal };
     }
-    function etaSense(ms) {
-      const m = ms / 6e4;
-      if (m < 0.15) return "\u4E00\u7728\u773C";
-      if (m < 1) return "\u559D\u53E3\u6C34\u7684\u529F\u592B";
-      if (m < 5) return "\u4E00\u9996\u6B4C";
-      if (m < 15) return "\u4E00\u676F\u5496\u5561";
-      if (m < 45) return "\u4E00\u96C6\u77ED\u5267";
-      if (m < 100) return "\u4E00\u96C6\u7535\u89C6\u5267";
-      if (m < 180) return "\u4E00\u573A\u7535\u5F71";
-      if (m < 480) return "\u5927\u534A\u5929";
-      return "\u7761\u4E00\u89C9";
-    }
-    function fmtEta(ms) {
-      if (!(ms > 1e3)) return "";
-      const s = Math.round(ms / 1e3);
-      let exact;
-      if (s < 60) exact = `\u7EA6 ${s} \u79D2`;
-      else {
-        const m = Math.round(s / 60);
-        if (m < 60) exact = `\u7EA6 ${m} \u5206`;
-        else {
-          const h = Math.floor(m / 60), rm = m % 60;
-          exact = rm ? `\u7EA6 ${h} \u5C0F\u65F6 ${rm} \u5206` : `\u7EA6 ${h} \u5C0F\u65F6`;
-        }
-      }
-      return `${exact} \xB7 ${etaSense(ms)}`;
-    }
     function ui() {
       if (!statusEl) return;
       const p = state2.prog || {};
@@ -829,8 +792,6 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           const sub = Math.trunc(Number(state2.submitted) || 0);
           if (tot) bits.push(`${submittedWord} ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
           else if (sub) bits.push(`${submittedWord} ${sub}s`);
-          const eta = fmtEta(p.etaMs);
-          if (eta) bits.push(eta);
         }
         subEl.textContent = bits.join(" \xB7 ");
         subEl.title = subEl.textContent;
@@ -1046,7 +1007,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       }
     }
   };
-  var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null } };
+  var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0 } };
   var hunter = createTokenHunter({ log: (m) => panel.log(m) }); // panel.log lazy ref: panel exists by boot time, so storage-restored token shows in panel too
   var api = createApi({ hunter, log: (m) => panel.log(m) });
   // 旧版本把明文账密存进了 GM；脚本已不再使用，启动即清除

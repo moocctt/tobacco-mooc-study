@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.14 — 2026-11-18
+
+### 修复
+
+- **ui**: 快速模式首轮也显示 ETA (#24) ([0e10b14](https://github.com/moocctt/tobacco-mooc-study/commit/0e10b145293d5fc5963690836ca143323602b87a))
+
 ## 0.0.13 — 2026-11-18
 
 ### 新功能

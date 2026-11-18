@@ -94,7 +94,8 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
       studyAt: () => 0
     });
     const r = await engine.runAll();
-    check("回升不判配额", r.quotaHit === false && r.ok === true, JSON.stringify(r));
+    check("回升不当配额猜", r.quotaHit === false, JSON.stringify(r));
+    check("回升但学时不涨仍停", r.creditHit === true && r.ok === false, JSON.stringify(r));
     check("回升继续上报", reportCalls() >= 5, JSON.stringify({ r, reportCalls: reportCalls() }));
   }
 

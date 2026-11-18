@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.17
+// @version      0.0.18
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -368,12 +368,13 @@
         return [settled, settled ? "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u5DF2\u7ED3\u7B97" : "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u7ED3\u7B97\u672A\u786E\u8BA4(\u7A0D\u540E\u590D\u6838)"];
       }
       const step0 = config2.getStep();
-      let total = null, submitted = 0, prevRem = null, maxRounds = 0, conflicts = 0;
+      let total = null, submitted = 0, prevRem = null, conflicts = 0, reports = 0;
       let stallSince = null, stallBaseStudy = null, stallLastPoll = 0;
       const STALL_POLL_MS = 3e4, STALL_CONFIRM_MS = 18e4;
+      const HARD_ROUND_CAP = Number(config2.roundHardCap) > 0 ? Number(config2.roundHardCap) : 5000;
       for (let i = 0; ; i++) {
         if (state2.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
-        if (maxRounds && i >= maxRounds) return [false, `\u8F6E\u6B21\u7528\u5B8C (\u5DF2\u63D0\u4EA4 ${submitted}s)`];
+        if (reports >= HARD_ROUND_CAP) return [false, `\u5B89\u5168\u4E0A\u9650 ${HARD_ROUND_CAP} \u8F6E (\u5DF2\u63D0\u4EA4 ${submitted}s)`];
         state2.round = i + 1;
         // 记录本轮起点：本轮网络耗时要从等待里扣掉，否则节奏不是 1:1（越慢的网络睡得越久）
         const roundStart = Date.now();
@@ -415,8 +416,10 @@
               stallBaseStudy = null;
               stallLastPoll = 0;
             } else if (waited >= STALL_CONFIRM_MS) {
-              const detail = nowStudy !== null && stallBaseStudy !== null ? `\u670D\u52A1\u7AEF\u5B66\u65F6\u672A\u589E\u957F (${nowStudy}s)` : "\u65E0\u6CD5\u8BFB\u53D6\u670D\u52A1\u7AEF\u5B66\u65F6";
-              throw new QuotaExhausted(`\u5269\u4F59\u65F6\u957F\u8FDE\u7EED ${Math.round(waited / 1e3)}s \u672A\u4E0B\u964D (${rem}s), \u4E14${detail} \u2014\u2014 \u5224\u5B9A\u5F53\u65E5\u5B66\u65F6\u914D\u989D\u5DF2\u6EE1`);
+              log(`\u23F3 \u5269\u4F59\u65F6\u957F\u8FDE\u7EED ${Math.round(waited / 1e3)}s \u672A\u4E0B\u964D (${rem}s), \u4ECD\u7EE7\u7EED\u4E0A\u62A5\uff08\u4E0D\u56E0\u6B64\u505C\u6B62\uff09`);
+              stallSince = null;
+              stallBaseStudy = null;
+              stallLastPoll = 0;
             } else {
               log(`\u23F3 \u4ECD\u5728\u89C2\u5BDF: \u5269\u4F59\u65F6\u957F ${rem}s, \u5DF2\u7B49\u5F85 ${Math.round(waited / 1e3)}s`);
             }
@@ -432,11 +435,9 @@
           stallBaseStudy = null;
           stallLastPoll = 0;
         }
-        if (total === null) {
-          total = rem + (Number(sec.studied) || 0);
-          maxRounds = computeMaxRounds(total, step0, config2.roundsSlack);
-        }
+        if (total === null) total = rem + (Number(sec.studied) || 0);
         const step = Math.min(step0, rem, API.MAX_STEP);
+        reports += 1;
         const isMedia = MEDIA.has(sec.type);
         const [code, body] = isMedia ? await api2.req("POST", API.VIDEO, { data: { encrypt: "false", logId, studyTime: Math.trunc(step), lessonLocation: Math.trunc(Math.min(total, total - rem + step)), resourceTotalTime: Math.trunc(total), flush: "false" } }) : await api2.req("POST", API.DOC, { data: { encrypt: "false", logId, lessonLocation: 999 } });
         const rep = normalizeReport(code, body);

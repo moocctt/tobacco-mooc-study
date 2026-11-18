@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T20:12:15+08:00",
+  "title": "Design System: 烟草网络学院 · 学习助手",
+  "extensions": {
+    "colorMeta": {
+      "panel-bg": { "role": "neutral", "displayName": "面板白", "canonical": "rgba(255,255,255,.92)", "tonalRamp": ["#d8dcdf", "#e2e5e8", "#eceef0", "#f4f5f7", "#f8f9fa", "#fbfcfd", "#ffffff", "#ffffff"] },
+      "panel-fg": { "role": "neutral", "displayName": "正文墨", "canonical": "#1f2328", "tonalRamp": ["#0d0f11", "#15181b", "#1f2328", "#2d3238", "#4a5159", "#6e7681", "#9aa1aa", "#c7ccd2"] },
+      "panel-dim": { "role": "neutral", "displayName": "次要灰", "canonical": "#59636e", "tonalRamp": ["#1f2429", "#31383f", "#48515a", "#59636e", "#737d88", "#929aa4", "#b4bac2", "#d7dbe0"] },
+      "panel-line": { "role": "neutral", "displayName": "分隔线", "canonical": "#e6eaef", "tonalRamp": ["#9aa3ad", "#b3bbc4", "#cbd1d8", "#dde2e7", "#e6eaef", "#eef1f4", "#f6f8fa", "#fbfcfd"] },
+      "log-bg": { "role": "neutral", "displayName": "日志底", "canonical": "rgba(246,248,250,.72)", "tonalRamp": ["#e4e9ee", "#e9edf1", "#eef1f4", "#f3f5f7", "#f6f8fa", "#f9fafb", "#fbfcfd", "#ffffff"] },
+      "focus-blue": { "role": "primary", "displayName": "焦点蓝", "canonical": "#0969da", "tonalRamp": ["#032f66", "#05468f", "#0757b5", "#0969da", "#3184e2", "#609fea", "#92bcf2", "#c3d9f9"] },
+      "accent-fallback": { "role": "primary", "displayName": "环境同频色", "canonical": "#57606a (运行时取自宿主页面顶栏)", "tonalRamp": ["#1d2125", "#30363d", "#454b54", "#57606a", "#737b85", "#949ba4", "#b7bdc5", "#d9dde2"] },
+      "on-accent": { "role": "neutral", "displayName": "强调色前景", "canonical": "#fff (暗底) / #1f2328 (亮底)", "tonalRamp": ["#d0d0d0", "#dedede", "#ebebeb", "#f4f4f4", "#fafafa", "#ffffff", "#ffffff", "#ffffff"] },
+      "progress-track": { "role": "neutral", "displayName": "进度槽", "canonical": "rgba(0,0,0,.26)", "tonalRamp": ["#1a1a1a", "#333333", "#4d4d4d", "#666666", "#808080", "#999999", "#b3b3b3", "#cccccc"] },
+      "scroll-thumb": { "role": "neutral", "displayName": "滚动条拇指", "canonical": "rgba(130,130,130,.32)", "tonalRamp": ["#4d4d4d", "#666666", "#808080", "#828282", "#999999", "#b3b3b3", "#cccccc", "#e6e6e6"] },
+      "scroll-thumb-hover": { "role": "neutral", "displayName": "滚动条拇指悬浮", "canonical": "rgba(130,130,130,.5)", "tonalRamp": ["#4d4d4d", "#666666", "#808080", "#828282", "#999999", "#b3b3b3", "#cccccc", "#e6e6e6"] }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "正文", "purpose": "面板基线与按钮文字。" },
+      "title": { "displayName": "标题", "purpose": "课程名与标题栏文字。" },
+      "label": { "displayName": "标签", "purpose": "元信息、时间戳与副行。" },
+      "status": { "displayName": "状态", "purpose": "当前小节状态行。" },
+      "button": { "displayName": "按钮", "purpose": "启动/停止按钮文字。" },
+      "mono": { "displayName": "等宽日志", "purpose": "日志正文。" },
+      "head-pct": { "displayName": "折叠态百分比", "purpose": "标题栏右侧读数。" }
+    },
+    "shadows": [
+      { "name": "panel-float", "value": "0 10px 30px -8px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.06)", "purpose": "面板整体离页一层。" }
+    ],
+    "motion": [
+      { "name": "fill-width", "value": "width .35s cubic-bezier(.22,.61,.36,1)", "purpose": "按钮内进度从左往右填充。" },
+      { "name": "hover-filter", "value": "filter .15s ease", "purpose": "按钮 hover/active 亮度变化。" },
+      { "name": "chevron", "value": "transform .18s ease, opacity .18s ease", "purpose": "折叠箭头旋转与显隐。" },
+      { "name": "track-opacity", "value": "opacity .2s ease", "purpose": "按钮进度槽显隐。" }
+    ],
+    "breakpoints": [
+      { "name": "hover-none", "value": "@media (hover: none)", "purpose": "触屏无悬停时直接显示停止动作。" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Panel Card",
+      "kind": "card",
+      "refersTo": "panel-card",
+      "description": "右下角悬浮面板的中性半透明容器。",
+      "html": "<section class=\"ds-panel\"><header class=\"ds-head\"><span class=\"ds-head-title\">课程名</span><span class=\"ds-head-right\"><span class=\"ds-head-status\">▶ 播放中</span><span class=\"ds-head-pct\">45%</span><svg class=\"ds-head-chev\" viewBox=\"0 0 16 16\" width=\"12\" height=\"12\" aria-hidden=\"true\"><path d=\"M4 6l4 4 4-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></header></section>",
+      "css": ".ds-panel{background:rgba(255,255,255,.92);color:#1f2328;border:1px solid #e6eaef;border-radius:10px;backdrop-filter:blur(10px) saturate(1.15);box-shadow:0 10px 30px -8px rgba(0,0,0,.32),0 2px 8px rgba(0,0,0,.06);font:400 12px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;padding:10px;overflow:hidden}.ds-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;margin:-10px -10px 0;background:#57606a;color:#fff;cursor:pointer;user-select:none}.ds-head-title{font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-head-right{display:flex;align-items:center;gap:7px;flex:0 0 auto}.ds-head-pct{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace;font-variant-numeric:tabular-nums;opacity:.85}.ds-head-status{display:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;opacity:.85;font-variant-numeric:tabular-nums}.ds-panel[data-collapsed=\"1\"] .ds-head-status{display:block}.ds-head-chev{display:block;opacity:.75;transition:transform .18s ease,opacity .18s ease}.ds-head:hover .ds-head-chev{opacity:1}"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "待机态的启动/继续按钮。",
+      "html": "<button class=\"ds-btn\" type=\"button\">执行学习任务</button>",
+      "css": ".ds-btn{display:flex;width:100%;align-items:center;justify-content:center;height:30px;padding:0 10px;border:0;border-radius:7px;background:#57606a;color:#fff;font:600 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;letter-spacing:.01em;cursor:pointer;transition:filter .15s ease}.ds-btn:hover{filter:brightness(1.07)}.ds-btn:active{filter:brightness(.96)}.ds-btn:focus-visible{outline:2px solid #0969da;outline-offset:2px}"
+    },
+    {
+      "name": "Running Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "运行态按钮：自身即进度条，悬停/聚焦才露出停止。",
+      "html": "<button class=\"ds-btn-running\" type=\"button\"><span class=\"ds-track\"></span><span class=\"ds-fill\" style=\"width:45%\"></span><span class=\"ds-label\">进行中 45%</span><span class=\"ds-stop\">⏸ 停止 45%</span></button>",
+      "css": ".ds-btn-running{position:relative;overflow:hidden;display:flex;width:100%;align-items:center;justify-content:center;height:30px;padding:0 10px;border:0;border-radius:7px;background:#57606a;color:#fff;font:600 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;letter-spacing:.01em;cursor:pointer;transition:filter .15s ease}.ds-btn-running:hover{filter:brightness(1.07)}.ds-btn-running:active{filter:brightness(.96)}.ds-btn-running:focus-visible{outline:2px solid #0969da;outline-offset:2px}.ds-track{position:absolute;inset:0;background:rgba(0,0,0,.26);opacity:1;transition:opacity .2s ease;pointer-events:none}.ds-fill{position:absolute;left:0;top:0;bottom:0;background:#57606a;transition:width .35s cubic-bezier(.22,.61,.36,1);pointer-events:none}.ds-label,.ds-stop{position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-stop{display:none}.ds-btn-running:hover .ds-label,.ds-btn-running:focus-visible .ds-label{display:none}.ds-btn-running:hover .ds-stop,.ds-btn-running:focus-visible .ds-stop{display:block}@media (hover:none){.ds-btn-running .ds-label{display:none}.ds-btn-running .ds-stop{display:block}}"
+    },
+    {
+      "name": "Progress & Meta Lines",
+      "kind": "custom",
+      "refersTo": "panel-card",
+      "description": "课程名、小节计数、状态行与副行。",
+      "html": "<div class=\"ds-prog\"><div class=\"ds-title\">烟草网络学院必修课</div><div class=\"ds-meta\">小节 3/7 · 01:23</div><div class=\"ds-status\">播放中</div><div class=\"ds-sub\">已播 45/100s</div></div>",
+      "css": ".ds-prog{padding:9px 10px 8px}.ds-title{font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}.ds-meta{margin-top:4px;font-size:11px;color:#59636e;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-status{margin-top:6px;font-size:11.5px;color:#1f2328;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-sub{margin-top:3px;font-size:11px;color:#59636e;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+    },
+    {
+      "name": "Log Region",
+      "kind": "custom",
+      "refersTo": "log-region",
+      "description": "带时间戳的滚动日志区。",
+      "html": "<div class=\"ds-log\"><div class=\"ds-logrow\"><span class=\"ds-ts\">12:34:56</span><span class=\"ds-tx\">已上报 90s</span></div></div>",
+      "css": ".ds-log{height:180px;overflow-y:auto;overscroll-behavior:contain;padding:6px 10px 8px;border-top:1px solid #e6eaef;background:rgba(246,248,250,.72);font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace}.ds-logrow{display:flex;gap:6px;align-items:baseline}.ds-ts{color:#59636e;flex:0 0 auto;font-variant-numeric:tabular-nums}.ds-tx{flex:1 1 auto;min-width:0;white-space:pre-wrap;word-break:break-word}.ds-tx.is-banner{font-weight:600}.ds-log::-webkit-scrollbar{width:8px}.ds-log::-webkit-scrollbar-thumb{background:rgba(130,130,130,.32);border-radius:4px}.ds-log::-webkit-scrollbar-thumb:hover{background:rgba(130,130,130,.5)}.ds-log::-webkit-scrollbar-track{background:transparent}"
+    }
+  ],
+  "narrative": {
+    "northStar": "学习助手",
+    "overview": "这不是一个要被欣赏的界面，而是一个贴在浏览器角落、随时交接状态与下一步动作的小工具。它借用宿主页面的顶栏色作为强调色，自己不发明品牌色；信息密度紧凑，读数比装饰优先，日志比氛围重要。用户扫一眼就知道「跑到哪、还要不要点停止」。\n\n整体气质是克制、可信、即时反馈。面板始终待在右下角，可拖拽、可折叠；展开时自上而下是进度区、启动/停止按钮、滚动日志三块。按钮本身就是进度条，不再单独开一行控件；运行态默认显示进度，只有鼠标悬停或键盘聚焦才露出停止动作——工具不催你，但随时让你能刹车。",
+    "keyCharacteristics": [
+      "强调色从宿主页面借来，面板本体保持中性半透明白。",
+      "按钮即仪表：已完成比例从左往右填亮，文字同步给出状态与百分比。",
+      "折叠后标题栏仍钉住状态与百分比，不必展开就知道跑到哪。",
+      "紧凑、等宽、带时间戳的日志区承担全部过程解释。",
+      "只有一层柔和投影；深度来自半透明与毛玻璃，不来自多重描边。"
+    ],
+    "rules": [
+      { "name": "The Borrowed Signal Rule", "body": "强调色只从宿主页面顶栏借来；工具自己不发明品牌色。焦点蓝是唯一例外，且只给键盘焦点。", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "所有会跳动的数字都用 tabular-nums，避免进度刷新时文字左右抖动。", "section": "typography" },
+      { "name": "The One-Layer Rule", "body": "面板只有一层投影；更深的层级用半透明和毛玻璃表达，不用再叠一层阴影。", "section": "elevation" },
+      { "name": "The Button-Is-The-Gauge Rule", "body": "按钮本身就是进度条；不为进度再开一行独立控件。", "section": "components" }
+    ],
+    "dos": [
+      "Do 从宿主页面顶栏取强调色，并按亮度切黑/白字。",
+      "Do 让按钮自己承担进度反馈，文字同时给状态与百分比。",
+      "Do 在悬停/键盘聚焦时才把运行态按钮切成停止，触屏无 hover 时直接显示停止。",
+      "Do 折叠后仍在标题栏给出状态与百分比。",
+      "Do 用 tabular-nums 固定所有跳动的数字宽度。",
+      "Do 保持一层投影 + 毛玻璃的轻悬浮感。"
+    ],
+    "donts": [
+      "Don't 发明固定品牌色覆盖宿主页面，或用渐变做营销感强调。",
+      "Don't 为进度再开一行独立进度条。",
+      "Don't 用 title 当按钮名称，或用颜色变化作为唯一状态提示。",
+      "Don't 叠多重阴影、内阴影或大圆角卡片来制造层次。",
+      "Don't 在标题之外再加 emoji 装饰。"
+    ]
+  }
+}

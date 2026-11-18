@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.16
+// @version      0.0.17
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -648,6 +648,8 @@ ${P} .${prefix}-head{padding:7px 10px;display:flex;justify-content:space-between
 ${P} .${prefix}-title{font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${P} .${prefix}-headright{display:flex;align-items:center;gap:7px;flex:0 0 auto}
 ${P} .${prefix}-headpct{font:600 11px/1 ${FONT_MONO};font-variant-numeric:tabular-nums;opacity:.85}
+${P} .${prefix}-headstatus{display:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;opacity:.85;font-variant-numeric:tabular-nums}
+${P}[data-collapsed="1"] .${prefix}-headstatus{display:block}
 ${P} .${prefix}-chev{display:block;opacity:.75;transition:transform .18s ease,opacity .18s ease}
 ${P} .${prefix}-head:hover .${prefix}-chev{opacity:1}
 ${P}[data-collapsed="1"] .${prefix}-chev{transform:rotate(-90deg)}
@@ -670,7 +672,7 @@ ${P} #${prefix}-start[data-running="1"]:hover .${prefix}-stoplabel,${P} #${prefi
 @media (hover:none){${P} #${prefix}-start[data-running="1"] .${prefix}-label{display:none}${P} #${prefix}-start[data-running="1"] .${prefix}-stoplabel{display:block}}
 ${P} #${prefix}-log{height:180px;overflow-y:auto;overscroll-behavior:contain;padding:6px 10px 8px;border-top:1px solid var(--p-line);background:var(--p-log);font:11px/1.6 ${FONT_MONO}}
 ${P} #${prefix}-log>div{display:flex;gap:6px;align-items:baseline}
-${P} .${prefix}-ts{color:var(--p-dim);opacity:.7;flex:0 0 auto;font-variant-numeric:tabular-nums}
+${P} .${prefix}-ts{color:var(--p-dim);flex:0 0 auto;font-variant-numeric:tabular-nums}
 ${P} .${prefix}-tx{flex:1 1 auto;min-width:0;white-space:pre-wrap;word-break:break-word}
 ${P} .${prefix}-tx.is-banner{font-weight:600}
 ${P} #${prefix}-log::-webkit-scrollbar{width:8px}
@@ -693,7 +695,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     gm: gm2,
     onStart
   }) {
-    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, stopEl, metaEl, subEl, headPct;
+    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, stopEl, metaEl, subEl, headStatus, headPct;
     const pendingLogs = [];
     function appendLine(t, msg) {
       const line = document.createElement("div");
@@ -772,8 +774,9 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         if (coursesTotal > 1) bits.push(`\u8BFE\u7A0B ${Math.min((Number(p.coursesDone) || 0) + (state2.running ? 1 : 0), coursesTotal)}/${coursesTotal}`);
         metaEl.textContent = bits.join(" \xB7 ");
       }
-      statusEl.textContent = state2.running ? state2.section || "\u51C6\u5907\u4E2D" : lockOwner() ? "\u25A0 \u5DF2\u505C\u6B62 (\u53E6\u4E00\u4EFB\u52A1/\u811A\u672C\u8FD0\u884C\u4E2D)" : currentBid2() ? "\u25A0 \u5DF2\u505C\u6B62 \xB7 \u5F53\u524D\u9875\u8BFE\u7A0B/\u4E13\u9898" : "\u25A0 \u5DF2\u505C\u6B62 \xB7 \u4E2A\u4EBA\u5B66\u4E60\u4EFB\u52A1";
-      statusEl.title = statusEl.textContent;
+      const statusText = state2.running ? state2.section || "\u51C6\u5907\u4E2D" : lockOwner() ? "\u25A0 \u5DF2\u505C\u6B62 (\u53E6\u4E00\u4EFB\u52A1/\u811A\u672C\u8FD0\u884C\u4E2D)" : currentBid2() ? "\u25A0 \u5DF2\u505C\u6B62 \xB7 \u5F53\u524D\u9875\u8BFE\u7A0B/\u4E13\u9898" : "\u25A0 \u5DF2\u505C\u6B62 \xB7 \u4E2A\u4EBA\u5B66\u4E60\u4EFB\u52A1";
+      statusEl.textContent = statusText;
+      statusEl.title = statusText;
       if (subEl) {
         const bits = [];
         if (state2.running) {
@@ -788,6 +791,11 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         subEl.textContent = bits.join(" \xB7 ");
         subEl.title = subEl.textContent;
         subEl.style.display = bits.length ? "" : "none";
+      }
+      if (headStatus) {
+        const compact = state2.stopFlag && state2.running ? "\u23F8 \u505C\u6B62\u4E2D" : state2.running ? "\u25B6 \u64AD\u653E\u4E2D" : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210" : pct > 0 ? "\u25A0 \u5DF2\u6682\u505C" : "\u25A0 \u5DF2\u505C\u6B62";
+        headStatus.textContent = state2.collapsed ? compact : "";
+        headStatus.title = headStatus.textContent;
       }
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";
       if (btnStart) btnStart.dataset.running = state2.running && !state2.stopFlag ? "1" : "0";
@@ -880,7 +888,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       <style>${panelCss(prefix)}</style>
       <div class="${prefix}-head">
         <span class="${prefix}-title">${title}</span>
-        <span class="${prefix}-headright"><span class="${prefix}-headpct"></span><svg class="${prefix}-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.75 4.5 6 7.75 9.25 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="${prefix}-headright"><span class="${prefix}-headstatus"></span><span class="${prefix}-headpct"></span><svg class="${prefix}-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.75 4.5 6 7.75 9.25 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </div>
       <div class="${prefix}-body">
         <div class="${prefix}-prog">
@@ -918,6 +926,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       stopEl = box.querySelector(`.${prefix}-stoplabel`);
       metaEl = box.querySelector(`.${prefix}-meta`);
       subEl = box.querySelector(`.${prefix}-sub`);
+      headStatus = box.querySelector(`.${prefix}-headstatus`);
       headPct = box.querySelector(`.${prefix}-headpct`);
       if (pendingLogs.length) {
         for (const [t, msg] of pendingLogs.splice(0)) appendLine(t, msg);

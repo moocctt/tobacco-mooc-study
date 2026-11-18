@@ -26,6 +26,7 @@ check("47 分钟同时显示数字和参照", fmtEta(47 * 60e3) === "约 47 分 
 check("8 秒同时显示数字和参照", fmtEta(8e3) === "约 8 秒 · 一眨眼", fmtEta(8e3));
 check("不足 1 秒仍不显示", fmtEta(500) === "", fmtEta(500));
 check("宽度不足可悬停看完整副行", /subEl\.title = subEl\.textContent/.test(src));
+check("首轮快速提交也给出 ETA 下限", /Math\.max\(1100, remaining \/ \(p\.sectionSec \/ elapsed\)\)/.test(src));
 
 for (const [name, ok, extra] of results) {
   console.log(`${ok ? "PASS" : "FAIL"} ${name}${ok ? "" : "  " + JSON.stringify(extra)}`);

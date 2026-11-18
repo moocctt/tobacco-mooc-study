@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.10
+// @version      0.0.11
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
-// @description  在学院页面上保持真实节奏的无人值守学习：按"我的任务"逐课推进，只驱动页面真实播放、不代报任何进度，学时由平台自己记录；令牌失效自动重登；页面保活；考试/调研等需真实作答的类型自动跳过。非官方工具，仅供学习进度管理。
+// @description  在学院页面上保持真实节奏的无人值守学习：按"我的任务"逐课推进，只驱动页面真实播放、不代报任何进度，学时由平台自己记录；只复用页面已有登录态；页面保活；考试/调研等需真实作答的类型自动跳过。非官方工具，仅供学习进度管理。
 // @author       tobacco-mooc-study
 // @match        https://mooc.ctt.cn/*
 // @noframes
@@ -97,7 +97,6 @@
   // src/constants.js
   var ORIGIN = "https://mooc.ctt.cn";
   var API = {
-    LOGIN: "/oauth/api/v1/app-login",
     TASKS: "/api/v1/human/task",
     START: "/api/v1/course-study/course-front/start-progress",
     VIDEO: "/api/v1/course-study/course-front/video-progress",
@@ -117,114 +116,6 @@
   var DONE = /* @__PURE__ */ new Set([2, 4]);
   var TYPE_NAME = { 1: "pdf", 2: "\u56FE\u7247", 3: "\u5916\u94FE", 4: "scorm", 5: "mp3", 6: "mp4", 7: "epub", 8: "\u4EFB\u52A1", 9: "\u8003\u8BD5", 10: "\u5173\u8054\u8BFE\u7A0B", 12: "\u95EE\u5377", 13: "\u8BC4\u4F30", 15: "\u8BFE\u4EF6" };
 
-  // src/aes.js
-  var KEY = new Uint8Array(16);
-  for (let i = 0; i < 16; i++) KEY[i] = parseInt("64386367386756616b45713941677570".substr(i * 2, 2), 16);
-  var SBOX = new Uint8Array(256);
-  var rotl = (x, n) => (x << n | x >>> 8 - n) & 255;
-  function mul(a, b) {
-    let p = 0;
-    for (let i = 0; i < 8; i++) {
-      if (b & 1) p ^= a;
-      const hi = a & 128;
-      a = a << 1 & 255;
-      if (hi) a ^= 27;
-      b >>= 1;
-    }
-    return p;
-  }
-  (function build() {
-    function inv(a) {
-      let r = 1;
-      for (let i = 0; i < 8; i++) {
-        r = mul(r, r);
-        if (i < 7) r = mul(r, a);
-      }
-      return r;
-    }
-    for (let x = 0; x < 256; x++) {
-      const v = x === 0 ? inv(0) : inv(x);
-      SBOX[x] = v ^ rotl(v, 1) ^ rotl(v, 2) ^ rotl(v, 3) ^ rotl(v, 4) ^ 99;
-    }
-  })();
-  function expandKey(key) {
-    const w = new Uint8Array(176);
-    w.set(key, 0);
-    for (let i = 4; i < 44; i++) {
-      let t = [w[i * 4 - 4], w[i * 4 - 3], w[i * 4 - 2], w[i * 4 - 1]];
-      if (i % 4 === 0) t = [SBOX[t[1]] ^ rcon(i / 4), SBOX[t[2]], SBOX[t[3]], SBOX[t[0]]];
-      for (let j = 0; j < 4; j++) w[i * 4 + j] = w[(i - 4) * 4 + j] ^ t[j];
-    }
-    return w;
-  }
-  function rcon(n) {
-    let v = 1;
-    for (let i = 1; i < n; i++) v = mul(v, 2);
-    return v;
-  }
-  var RK = expandKey(KEY);
-  function encryptBlock(inp, out, off) {
-    const s = new Uint8Array(16), t = new Uint8Array(16);
-    s.set(inp);
-    for (let r = 0; r < 10; r++) {
-      for (let i = 0; i < 16; i++) t[i] = s[i] ^ RK[r * 16 + i];
-      for (let i = 0; i < 16; i++) s[i] = SBOX[t[i]];
-      const sh = [0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11];
-      for (let i = 0; i < 16; i++) t[i] = s[sh[i]];
-      if (r < 9) {
-        for (let c = 0; c < 4; c++) {
-          const a = t.slice(c * 4, c * 4 + 4);
-          s[c * 4 + 0] = mul(a[0], 2) ^ mul(a[1], 3) ^ a[2] ^ a[3];
-          s[c * 4 + 1] = a[0] ^ mul(a[1], 2) ^ mul(a[2], 3) ^ a[3];
-          s[c * 4 + 2] = a[0] ^ a[1] ^ mul(a[2], 2) ^ mul(a[3], 3);
-          s[c * 4 + 3] = mul(a[0], 3) ^ a[1] ^ a[2] ^ mul(a[3], 2);
-        }
-      } else s.set(t);
-    }
-    for (let i = 0; i < 16; i++) out[off + i] = s[i] ^ RK[160 + i];
-  }
-  function encField(value) {
-    const text = String(value);
-    const raw = new TextEncoder().encode(text);
-    const pad = 16 - raw.length % 16;
-    const padded = new Uint8Array(raw.length + pad);
-    padded.set(raw);
-    padded.fill(pad, raw.length);
-    const out = new Uint8Array(padded.length);
-    for (let i = 0; i < padded.length; i += 16) encryptBlock(padded.subarray(i, i + 16), out, i);
-    let bin = "";
-    for (const b of out) bin += String.fromCharCode(b);
-    return btoa(bin);
-  }
-
-  // src/fingerprint.js
-  var DEVICES = [
-    { brand: "Xiaomi", model: "23127PN0CC", android: 14 },
-    { brand: "HUAWEI", model: "NOH-AN00", android: 12 },
-    { brand: "OPPO", model: "PHA120", android: 13 },
-    { brand: "vivo", model: "V2227A", android: 13 },
-    { brand: "HONOR", model: "PGT-AN10", android: 13 },
-    { brand: "realme", model: "RMX3706", android: 14 },
-    { brand: "OnePlus", model: "PJD110", android: 14 },
-    { brand: "Google", model: "Pixel 7", android: 14 },
-    { brand: "samsung", model: "SM-S9180", android: 13 },
-    { brand: "motorola", model: "XT2301-3", android: 13 }
-  ];
-  var SYSTEMS = ["Linux armv8l", "Linux aarch64"];
-  function hash32(text) {
-    let h = 2166136261;
-    for (let i = 0; i < text.length; i++) {
-      h ^= text.charCodeAt(i);
-      h = Math.imul(h, 16777619) >>> 0;
-    }
-    return h >>> 0;
-  }
-  function fingerprintFor(seed) {
-    const h = hash32(seed && String(seed).trim() ? String(seed).trim() : "default");
-    const device = DEVICES[h % DEVICES.length];
-    return { terminal: device.brand, system: SYSTEMS[(h >>> 8) % SYSTEMS.length] };
-  }
-
   // src/util.js
   var rand = (a, b) => a + Math.random() * (b - a);
   var pystr = (v) => v === true ? "True" : v === false ? "False" : v === null || v === void 0 ? "" : String(v);
@@ -238,7 +129,7 @@
 
   // src/api.js
   var AUTH_CODES = /* @__PURE__ */ new Set([90901, 90902]);
-  function createApi({ hunter: hunter2, gm: gm2, fetchImpl, log = () => {
+  function createApi({ hunter: hunter2, fetchImpl, log = () => {
   }, origin = ORIGIN, timeoutMs = 2e4 }) {
     const doFetch = fetchImpl || ((...a) => fetch(...a));
     // 全链路无超时会让整批永远卡在一个请求上，这里统一加硬超时
@@ -258,44 +149,6 @@
       } finally {
         clearTimeout(timer);
       }
-    }
-    async function relogin() {
-      const acc = gm2.getValue("account");
-      if (!acc || !acc.username || !acc.password) return null;
-      const fp = fingerprintFor(acc.username);
-      const body = form({
-        username: encField(acc.username),
-        pword: encField(acc.password),
-        // 换单位可在油猴菜单「设置单位名称」改（默认全行业）
-        company_name: encField(gm2.getValue("companyName") || "\u5168\u884C\u4E1A"),
-        login_method: encField("login-by-user"),
-        client_id: encField(999),
-        displayDynamic: encField(true),
-        terminal: encField(fp.terminal),
-        system: encField(fp.system),
-        captcha: ""
-      });
-      const res = await doFetchWithTimeout(origin + API.LOGIN, {
-        method: "POST",
-        body,
-        credentials: "include",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest", Accept: "application/json;charset=UTF-8" }
-      });
-      const text = await res.text();
-      let data = null;
-      if (text.trimStart().startsWith("{")) {
-        try {
-          data = JSON.parse(text);
-        } catch {
-        }
-      }
-      if (!data || !data.access_token) {
-        log(`\u91CD\u767B\u5931\u8D25 (HTTP ${res.status})`);
-        return null;
-      }
-      hunter2.setToken(`${data.token_type || "Bearer"}__${data.access_token}`);
-      log("\u91CD\u767B\u6210\u529F");
-      return data;
     }
     async function req(method, path, { params, data } = {}, retried = false) {
       await hunter2.waitToken();
@@ -322,10 +175,8 @@
           log("\u5DF2\u56DE\u8BFB localStorage \u4E2D\u7684\u65B0\u9C9C\u4EE4\u724C, \u91CD\u8BD5\u8BF7\u6C42");
           return req(method, path, { params, data }, true);
         }
-        log("\u767B\u5F55\u6001\u5931\u6548, \u5C1D\u8BD5\u91CD\u767B\u2026");
-        const nt = await relogin();
-        if (nt) return req(method, path, { params, data }, true);
-        const err = new Error("\u767B\u5F55\u6001\u5931\u6548\u4E14\u65E0\u4FDD\u5B58\u7684\u8D26\u5BC6/\u65B0\u9C9C\u4EE4\u724C \u2014\u2014 \u8BF7\u5237\u65B0\u9875\u9762\u91CD\u8BD5, \u6216\u5728\u6CB9\u7334\u83DC\u5355\u300C\u4FDD\u5B58\u8D26\u53F7\u5BC6\u7801\u300D\u540E\u91CD\u8BD5");
+        log("\u767B\u5F55\u6001\u5931\u6548, \u8BF7\u5237\u65B0\u9875\u9762\u91CD\u65B0\u767B\u5F55");
+        const err = new Error("\u767B\u5F55\u6001\u5DF2\u5931\u6548 \u2014\u2014 \u811A\u672C\u53EA\u4F7F\u7528\u4F60\u5F53\u524D\u9875\u9762\u7684\u767B\u5F55\u6001, \u8BF7\u5237\u65B0\u9875\u9762\u91CD\u65B0\u767B\u5F55\u540E\u518D\u542F\u52A8");
         err.auth = true;
         throw err;
       }
@@ -336,7 +187,7 @@
       }
       return [res.status, body];
     }
-    return { req, relogin };
+    return { req };
   }
 
   // src/engine.js
@@ -1155,7 +1006,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   };
   var state = { running: false, stopFlag: false, course: "", section: "", round: 0, submitted: 0, collapsed: false, pinned: false, stacked: false, prog: { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0, etaMs: null } };
   var hunter = createTokenHunter({ log: (m) => panel.log(m) }); // panel.log lazy ref: panel exists by boot time, so storage-restored token shows in panel too
-  var api = createApi({ hunter, gm, log: (m) => panel.log(m) });
+  var api = createApi({ hunter, log: (m) => panel.log(m) });
   var config = {
     getStep: () => 30,
     // 每轮上报 30s
@@ -1398,12 +1249,6 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         currentBidFromHash: () => currentBid(),
         log: panel.log,
         core: {
-          KEY,
-          encField,
-          expandKey,
-          encryptBlock,
-          hash32,
-          fingerprintFor,
           pystr,
           toParams,
           qs,
@@ -1474,24 +1319,5 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     gm.setValue("autoContinue", on);
     panel.log(`\u81EA\u52A8\u7EED\u8DD1 \u2192 ${on ? "\u5F00" : "\u5173"}`);
     if (on) location.reload();
-  });
-  GM_registerMenuCommand("\u8BBE\u7F6E\u5355\u4F4D\u540D\u79F0", () => {
-    const v = prompt("\u5355\u4F4D\u540D\u79F0(\u9ED8\u8BA4\u5168\u884C\u4E1A):", gm.getValue("companyName") || "\u5168\u884C\u4E1A");
-    if (v && v.trim()) {
-      gm.setValue("companyName", v.trim());
-      panel.log("\u5355\u4F4D\u540D\u79F0\u5DF2\u4FDD\u5B58");
-    }
-  });
-  GM_registerMenuCommand("\u4FDD\u5B58\u8D26\u53F7\u5BC6\u7801(\u7528\u4E8E\u5931\u6548\u81EA\u52A8\u91CD\u767B)", () => {
-    const u = prompt("\u8D26\u53F7:");
-    if (!u) return;
-    const p = prompt("\u5BC6\u7801:");
-    if (!p) return;
-    gm.setValue("account", { username: u, password: p });
-    panel.log("\u8D26\u5BC6\u5DF2\u4FDD\u5B58(\u4EC5\u5B58\u4E8E\u672C\u673A\u6CB9\u7334\u5B58\u50A8)");
-  });
-  GM_registerMenuCommand("\u6E05\u9664\u8D26\u53F7\u5BC6\u7801", () => {
-    gm.deleteValue("account");
-    panel.log("\u8D26\u5BC6\u5DF2\u6E05\u9664");
   });
 })();

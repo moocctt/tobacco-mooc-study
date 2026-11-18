@@ -11,7 +11,7 @@ const scripts = {
 let failed = 0;
 for (const [kind, file] of Object.entries(scripts)) {
   const tests = ["auth.test.js", "authflow.test.js", "engine.test.js", "subline.test.js", "eta.test.js", "hover-stop.test.js", "collapsed-status.test.js"];
-  if (kind === "fast") tests.push("quota.test.js");
+  if (kind === "fast") tests.push("quota.test.js", "study-credit.test.js");
   if (kind === "unattended") tests.push("noreport.test.js", "stop-pause.test.js");
   for (const t of tests) {
     const r = spawnSync(process.execPath, [path.join(__dirname, t), file], {

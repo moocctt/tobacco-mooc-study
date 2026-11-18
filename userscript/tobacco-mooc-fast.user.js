@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.19
+// @version      0.0.20
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -196,6 +196,12 @@
   // src/engine.js
   var QuotaExhausted = class extends Error {
   };
+  var StudyNotCredited = class extends Error {
+    constructor(message, evidence) {
+      super(message);
+      this.evidence = evidence;
+    }
+  };
   function buildStartParams(backdateS, clientType, nowMs = Date.now()) {
     return { clientType, createTime: nowMs - Math.trunc(backdateS * 1e3) };
   }
@@ -293,6 +299,34 @@
       }
       return out;
     }
+    async function sectionSnapshot(courseId, sec) {
+      if (!courseId) return null;
+      try {
+        const list = await sections(courseId, state2.versionId, state2.isRegister);
+        const hit = list.find((s) => String(s.id) === String(sec.id) || (sec.rid && String(s.rid) === String(sec.rid)));
+        return hit ? { studied: Number(hit.studied) || 0, finish: Number(hit.finish) || 0 } : null;
+      } catch {
+        return null;
+      }
+    }
+    async function verifyStudyCredited(sec, courseId, baseline, submitted, total) {
+      const initial = Number(baseline) || 0;
+      const enough = Number(total) || 0;
+      let last = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        last = await sectionSnapshot(courseId, sec);
+        if (!last) return { ok: true, snap: null, reason: "\u65E0\u670D\u52A1\u7AEF\u5B66\u65F6\u5FEB\u7167\uFF0C\u8DF3\u8FC7\u6838\u9A8C" };
+        if (DONE.has(last.finish) || last.studied > initial || (enough > 0 && last.studied >= enough - 2)) {
+          return { ok: true, snap: last, reason: "\u670D\u52A1\u7AEF\u5DF2\u5165\u8D26" };
+        }
+        if (attempt < 2) await sleep(1500);
+      }
+      return {
+        ok: false,
+        snap: last,
+        reason: `\u8FDE\u7EED 3 \u6B21\u6838\u9A8C\u670D\u52A1\u7AEF\u5B66\u65F6\u672A\u589E\u957F (\u57FA\u7EBF ${initial}s, \u811A\u672C\u5DF2\u62A5 ${submitted}s, \u670D\u52A1\u7AEF ${last ? last.studied : "?"}s, finishStatus ${last ? last.finish : "?"})`
+      };
+    }
     async function openCourse(courseId) {
       const [code, det] = await api2.req("POST", API.REGISTER, { data: { courseId } });
       if (code !== 200 || typeof det !== "object" || !det) return openLibraryCourse(courseId);
@@ -362,7 +396,10 @@
         return [settled, settled ? "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u5DF2\u7ED3\u7B97" : "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u7ED3\u7B97\u672A\u786E\u8BA4(\u7A0D\u540E\u590D\u6838)"];
       }
       const step0 = config2.getStep();
+      const initialStudied = Number(sec.studied) || 0;
       let total = null, submitted = 0, conflicts = 0, reports = 0;
+      let lastRem = null, lastStudied = initialStudied, stagnantReports = 0;
+      const DIAG_SAMPLE_EVERY = 3, DIAG_STALL_REPORTS = 9;
       const HARD_ROUND_CAP = Number(config2.roundHardCap) > 0 ? Number(config2.roundHardCap) : 5000;
       for (let i = 0; ; i++) {
         if (state2.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
@@ -380,7 +417,12 @@
         if (sp.rem.kind === "invalid") return [false, `remainingTime \u5F02\u5E38: ${String(sp.rem.value)}`];
         const rem = sp.rem.value;
         if (rem <= 0) {
-          if (submitted || sec.studied) return [true, `\u65F6\u957F\u5DF2\u7528\u5B8C\uFF08\u5171 ${submitted}s\uFF09`];
+          if (submitted || sec.studied) {
+            const v = await verifyStudyCredited(sec, courseId, initialStudied, submitted, total);
+            if (!v.ok) throw new StudyNotCredited(v.reason, v.snap);
+            log(`[\u6838\u9A8C] \u670D\u52A1\u7AEF\u5B66\u65F6 ${v.snap ? v.snap.studied + "s" : "?"} | finish ${v.snap ? v.snap.finish : "?"} | ${v.reason}`);
+            return [true, `\u65F6\u957F\u5DF2\u7528\u5B8C\uFF08\u5171 ${submitted}s\uFF09`];
+          }
           return [true, "\u8BE5\u5C0F\u8282\u65E0\u5269\u4F59\u65F6\u957F"];
         }
         if (total === null) total = rem + (Number(sec.studied) || 0);
@@ -402,6 +444,22 @@
         submitted += step;
         state2.submitted = submitted;
         setSectionProgress(submitted, total, depth);
+        const remDropped = lastRem !== null && rem < lastRem;
+        stagnantReports = lastRem === null || remDropped ? 0 : stagnantReports + 1;
+        lastRem = rem;
+        if (reports % DIAG_SAMPLE_EVERY === 0 || stagnantReports >= DIAG_STALL_REPORTS) {
+          const snap = await sectionSnapshot(courseId, sec);
+          const serverStudied = snap ? snap.studied : null;
+          const grew = serverStudied !== null && serverStudied > lastStudied;
+          if (grew) lastStudied = serverStudied;
+          log(`[\u8BCA\u65AD] \u5DF2\u62A5 ${submitted}s | rem ${rem}s | \u670D\u52A1\u7AEF\u5B66\u65F6 ${serverStudied === null ? "?" : serverStudied + "s"} | finish ${snap ? snap.finish : "?"} | ${grew ? "\u5DF2\u5165\u8D26" : "\u672A\u589E\u957F"}`);
+          if (!grew && !remDropped && stagnantReports >= DIAG_STALL_REPORTS) {
+            throw new StudyNotCredited(
+              `\u8FDE\u7EED ${stagnantReports} \u8F6E\u5269\u4F59\u65F6\u957F\u4E0E\u670D\u52A1\u7AEF\u5B66\u65F6\u5747\u672A\u589E\u957F\uFF08\u5DF2\u62A5 ${submitted}s, \u670D\u52A1\u7AEF ${serverStudied === null ? "?" : serverStudied + "s"}\uFF09\uFF0C\u505C\u6B62\u7A7A\u8F6C`,
+              { rem, serverStudied, submitted, finish: snap ? snap.finish : null }
+            );
+          }
+        }
         if (courseId) await progressUpdate(courseId);
         ui();
         await sleep(Math.max(0, config2.roundSleepMs(step) - (Date.now() - roundStart)));
@@ -470,6 +528,10 @@
             if (depth === 0) log("[\u914D\u989D] " + e.message + ", \u7EC8\u6B62\u5168\u90E8");
             throw e;
           }
+          if (e instanceof StudyNotCredited) {
+            if (depth === 0) log("[\u672A\u5165\u8D26] " + e.message + ", \u7EC8\u6B62\u5168\u90E8");
+            throw e;
+          }
           if (e.auth) throw e;
           log(`   \u2717 ${e.message}`);
         }
@@ -486,7 +548,7 @@
       state2.running = true;
       state2.stopFlag = false;
       ui();
-      let failCount = 0, quotaHit = false;
+      let failCount = 0, quotaHit = false, creditHit = false;
       const bid = currentBid2();
       const mode = bid ? "course" : "tasks";
       state2.prog = { secDone: 0, secTotal: 0, curFrac: 0, coursesDone: 0, coursesTotal: bid ? 1 : 0, sectionSec: 0, sectionTotalSec: 0, nestedDone: 0, nestedTotal: 0 };
@@ -503,6 +565,7 @@
             }
           } catch (e) {
             if (e instanceof QuotaExhausted) quotaHit = true;
+            else if (e instanceof StudyNotCredited) creditHit = true;
             else if (e.auth) throw e;
             else {
               failCount += 1;
@@ -531,6 +594,10 @@
                 quotaHit = true;
                 break;
               }
+              if (e instanceof StudyNotCredited) {
+                creditHit = true;
+                break;
+              }
               if (e.auth) throw e;
               failCount += 1;
               log(`\u2717 \u8BFE\u7A0B\u5931\u8D25: ${e.message}`);
@@ -548,14 +615,15 @@
           }
         }
         if (quotaHit) log("\u26A0 \u5B66\u65F6\u914D\u989D\u5DF2\u6EE1, \u5DF2\u505C\u6B62 (\u6B21\u65E5\u518D\u8BD5)");
+        else if (creditHit) log("\u26A0 \u670D\u52A1\u7AEF\u5B66\u65F6\u672A\u5165\u8D26, \u5DF2\u505C\u6B62 (\u67E5\u65E5\u9650\u989D\u6216\u9A8C\u8BC1\u9632\u62A4)");
         else if (!state2.stopFlag) {
           if (mode === "course") log(failCount ? `\u26A0 \u672C\u8BFE\u7A0B/\u4E13\u9898\u5904\u7406\u5B8C\u6BD5 (\u5931\u8D25 ${failCount} \u5904)` : "\u2705 \u672C\u8BFE\u7A0B/\u4E13\u9898\u5904\u7406\u5B8C\u6BD5");
           else log(failCount ? `\u26A0 \u5168\u90E8\u4EFB\u52A1\u5904\u7406\u5B8C\u6BD5 (\u5931\u8D25 ${failCount} \u95E8)` : "\u2705 \u5168\u90E8\u4EFB\u52A1\u5904\u7406\u5B8C\u6BD5");
         }
-        return { quotaHit, ok: !quotaHit && !state2.stopFlag && failCount === 0, authFailed: false };
+        return { quotaHit, creditHit, ok: !quotaHit && !creditHit && !state2.stopFlag && failCount === 0, authFailed: false };
       } catch (e) {
         log(`\u2717 ${e.message}`);
-        return { quotaHit, ok: false, authFailed: !!(e && e.auth) };
+        return { quotaHit, creditHit, ok: false, authFailed: !!(e && e.auth) };
       } finally {
         state2.running = false;
         state2.course = "";
@@ -1063,6 +1131,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           createLock,
           createSessionGuard,
           QuotaExhausted,
+          StudyNotCredited,
           buildStartParams,
           parseRemaining,
           normalizeReport,

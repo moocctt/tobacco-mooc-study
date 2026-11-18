@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.12
+// @version      0.0.13
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -208,11 +208,19 @@
   function normalizeReport(code, body) {
     const raw = body && body.errorCode;
     const ec = raw === null || raw === void 0 ? 0 : Number(raw);
+    const qh = quotaHint(body);
+    if (qh) return { status: "quota", reason: `\u5E73\u53F0\u660E\u786E\u63D0\u793A\u914D\u989D\u9650\u5236: ${qh}` };
     if (ec === 40909) return { status: "conflict", errorCode: ec };
     if (code !== 200) return { status: "fail", errorCode: ec, reason: `\u4E0A\u62A5\u5931\u8D25 HTTP ${code}` };
     if (!Number.isFinite(ec)) return { status: "fail", errorCode: raw, reason: `\u4E0A\u62A5\u5931\u8D25 errorCode ${raw}` };
     if (ec !== 0) return { status: "fail", errorCode: ec, reason: `\u4E0A\u62A5\u5931\u8D25 errorCode ${ec}` };
     return { status: "ok", errorCode: 0 };
+  }
+  function quotaHint(body) {
+    if (!body || typeof body !== "object") return "";
+    const parts = [body.message, body.msg, body.errorMsg, body.errorMessage, body.description];
+    const text = parts.filter((v) => typeof v === "string").join(" ");
+    return /\u914D\u989D|\u5B66\u65F6[^\s]{0,8}(\u5DF2\u6EE1|\u4E0A\u9650|\u7528\u5B8C)|\u6BCF\u65E5[^\s]{0,8}(\u4E0A\u9650|\u9650\u5236)|quota|daily.?limit/i.test(text) ? text.slice(0, 120) : "";
   }
   function computeMaxRounds(total, step0, slack) {
     const t = Number(total), per = Math.min(Number(step0) || 0, API.MAX_STEP);
@@ -288,6 +296,12 @@
       }
       return out;
     }
+    async function sectionStudyTime(courseId, sec) {
+      if (!courseId) return null;
+      const list = await sections(courseId, state2.versionId, state2.isRegister);
+      const hit = list.find((s) => String(s.id) === String(sec.id) || (sec.rid && String(s.rid) === String(sec.rid)));
+      return hit ? Number(hit.studied) || 0 : null;
+    }
     async function openCourse(courseId) {
       const [code, det] = await api2.req("POST", API.REGISTER, { data: { courseId } });
       if (code !== 200 || typeof det !== "object" || !det) return openLibraryCourse(courseId);
@@ -358,7 +372,9 @@
       }
       const step0 = config2.getStep();
       const secT0 = Date.now();
-      let total = null, submitted = 0, prevRem = null, stuck = 0, maxRounds = 0, conflicts = 0;
+      let total = null, submitted = 0, prevRem = null, maxRounds = 0, conflicts = 0;
+      let stallSince = null, stallBaseStudy = null, stallLastPoll = 0;
+      const STALL_POLL_MS = 3e4, STALL_CONFIRM_MS = 18e4;
       for (let i = 0; ; i++) {
         if (state2.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
         if (maxRounds && i >= maxRounds) return [false, `\u8F6E\u6B21\u7528\u5B8C (\u5DF2\u63D0\u4EA4 ${submitted}s)`];
@@ -378,11 +394,48 @@
           if (submitted || sec.studied) return [true, `\u65F6\u957F\u5DF2\u7528\u5B8C\uFF08\u5171 ${submitted}s\uFF09`];
           return [true, "\u8BE5\u5C0F\u8282\u65E0\u5269\u4F59\u65F6\u957F"];
         }
-        if (prevRem !== null && rem >= prevRem) {
-          stuck += 1;
-          if (stuck >= 2) throw new QuotaExhausted(`\u5269\u4F59\u65F6\u957F\u672A\u4E0B\u964D (${prevRem}\u2192${rem}) \u2014\u2014 \u5224\u5B9A\u5F53\u65E5\u5B66\u65F6\u914D\u989D\u5DF2\u6EE1`);
-        } else stuck = 0;
+        const previousRem = prevRem;
         prevRem = rem;
+        if (previousRem !== null && rem > previousRem) {
+          if (stallSince !== null) log("\u21BA \u5269\u4F59\u65F6\u957F\u56DE\u5347, \u64A4\u9500\u914D\u989D\u89C2\u5BDF");
+          stallSince = null;
+          stallBaseStudy = null;
+          stallLastPoll = 0;
+        } else if (previousRem !== null && rem === previousRem) {
+          if (stallSince === null) {
+            stallSince = Date.now();
+            stallLastPoll = stallSince;
+            try { stallBaseStudy = await sectionStudyTime(courseId, sec); } catch { stallBaseStudy = null; }
+            log("\u23F3 \u5269\u4F59\u65F6\u957F\u672A\u4E0B\u964D, \u5F00\u59CB\u89C2\u5BDF (\u5E73\u53F0\u805A\u5408\u53EF\u80FD\u5EF6\u8FDF)");
+          }
+          const waited = Date.now() - stallSince;
+          if (waited - stallLastPoll >= STALL_POLL_MS || waited >= STALL_CONFIRM_MS) {
+            stallLastPoll = Date.now();
+            let nowStudy = null;
+            try { nowStudy = await sectionStudyTime(courseId, sec); } catch { nowStudy = null; }
+            if (nowStudy !== null && stallBaseStudy !== null && nowStudy > stallBaseStudy) {
+              log(`\u2713 \u670D\u52A1\u7AEF\u5B66\u65F6\u5DF2\u589E\u957F (${stallBaseStudy}\u2192${nowStudy}), \u64A4\u9500\u914D\u989D\u89C2\u5BDF`);
+              stallSince = null;
+              stallBaseStudy = null;
+              stallLastPoll = 0;
+            } else if (waited >= STALL_CONFIRM_MS) {
+              const detail = nowStudy !== null && stallBaseStudy !== null ? `\u670D\u52A1\u7AEF\u5B66\u65F6\u672A\u589E\u957F (${nowStudy}s)` : "\u65E0\u6CD5\u8BFB\u53D6\u670D\u52A1\u7AEF\u5B66\u65F6";
+              throw new QuotaExhausted(`\u5269\u4F59\u65F6\u957F\u8FDE\u7EED ${Math.round(waited / 1e3)}s \u672A\u4E0B\u964D (${rem}s), \u4E14${detail} \u2014\u2014 \u5224\u5B9A\u5F53\u65E5\u5B66\u65F6\u914D\u989D\u5DF2\u6EE1`);
+            } else {
+              log(`\u23F3 \u4ECD\u5728\u89C2\u5BDF: \u5269\u4F59\u65F6\u957F ${rem}s, \u5DF2\u7B49\u5F85 ${Math.round(waited / 1e3)}s`);
+            }
+          }
+          if (stallSince !== null) {
+            await sleep(STALL_POLL_MS);
+            i -= 1;
+            continue;
+          }
+        } else if (previousRem !== null && stallSince !== null) {
+          log("\u2713 \u5269\u4F59\u65F6\u957F\u5DF2\u6062\u590D\u4E0B\u964D, \u64A4\u9500\u914D\u989D\u89C2\u5BDF");
+          stallSince = null;
+          stallBaseStudy = null;
+          stallLastPoll = 0;
+        }
         if (total === null) {
           total = rem + (Number(sec.studied) || 0);
           maxRounds = computeMaxRounds(total, step0, config2.roundsSlack);
@@ -398,6 +451,7 @@
           await sleep(Math.min(1e3 * conflicts, 5e3));
           continue;
         }
+        if (rep.status === "quota") throw new QuotaExhausted(rep.reason);
         if (rep.status !== "ok") return [false, rep.reason];
         conflicts = 0;
         submitted += step;
@@ -716,14 +770,32 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       const overall = coursesTotal > 1 ? Math.min(1, ((Number(p.coursesDone) || 0) + courseFrac) / coursesTotal) : courseFrac;
       return { pct: Math.round(overall * 100), secTotal, coursesTotal };
     }
+    function etaSense(ms) {
+      const m = ms / 6e4;
+      if (m < 0.15) return "\u4E00\u7728\u773C";
+      if (m < 1) return "\u559D\u53E3\u6C34\u7684\u529F\u592B";
+      if (m < 5) return "\u4E00\u9996\u6B4C";
+      if (m < 15) return "\u4E00\u676F\u5496\u5561";
+      if (m < 45) return "\u4E00\u96C6\u77ED\u5267";
+      if (m < 100) return "\u4E00\u96C6\u7535\u89C6\u5267";
+      if (m < 180) return "\u4E00\u573A\u7535\u5F71";
+      if (m < 480) return "\u5927\u534A\u5929";
+      return "\u7761\u4E00\u89C9";
+    }
     function fmtEta(ms) {
       if (!(ms > 1e3)) return "";
       const s = Math.round(ms / 1e3);
-      if (s < 60) return `\u7EA6 ${s} \u79D2`;
-      const m = Math.round(s / 60);
-      if (m < 60) return `\u7EA6 ${m} \u5206`;
-      const h = Math.floor(m / 60), rm = m % 60;
-      return rm ? `\u7EA6 ${h} \u5C0F\u65F6 ${rm} \u5206` : `\u7EA6 ${h} \u5C0F\u65F6`;
+      let exact;
+      if (s < 60) exact = `\u7EA6 ${s} \u79D2`;
+      else {
+        const m = Math.round(s / 60);
+        if (m < 60) exact = `\u7EA6 ${m} \u5206`;
+        else {
+          const h = Math.floor(m / 60), rm = m % 60;
+          exact = rm ? `\u7EA6 ${h} \u5C0F\u65F6 ${rm} \u5206` : `\u7EA6 ${h} \u5C0F\u65F6`;
+        }
+      }
+      return `${exact} \xB7 ${etaSense(ms)}`;
     }
     function ui() {
       if (!statusEl) return;
@@ -757,6 +829,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           if (eta) bits.push(eta);
         }
         subEl.textContent = bits.join(" \xB7 ");
+        subEl.title = subEl.textContent;
         subEl.style.display = bits.length ? "" : "none";
       }
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";

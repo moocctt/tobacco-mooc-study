@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.17 — 2026-11-18
+
+### 新功能
+
+- **ui**: 折叠面板仍显示状态与进度 (#27) ([7d0daa1](https://github.com/moocctt/tobacco-mooc-study/commit/7d0daa15f02fd4dcef1ff66acdd890a0f9951394))
+
 ## 0.0.16 — 2026-11-18
 
 ### 新功能

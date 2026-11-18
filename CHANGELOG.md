@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.18 — 2026-11-18
+
+### 修复
+
+- 快刷停滞不再停，无人值守停止同步暂停播放 (#28) ([6f48405](https://github.com/moocctt/tobacco-mooc-study/commit/6f48405366deb46a08e427e9e572f5d9e583a23c))
+
 ## 0.0.17 — 2026-11-18
 
 ### 新功能

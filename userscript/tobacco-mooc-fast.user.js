@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.15
+// @version      0.0.16
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -705,6 +705,10 @@ ${P} #${prefix}-start:focus-visible{outline:2px solid var(--p-focus);outline-off
 ${P} .${prefix}-track{position:absolute;inset:0;background:rgba(0,0,0,.26);opacity:0;transition:opacity .2s ease;pointer-events:none}
 ${P} .${prefix}-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--p-accent);transition:width .35s cubic-bezier(.22,.61,.36,1);pointer-events:none}
 ${P} .${prefix}-label{position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} .${prefix}-stoplabel{display:none;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} #${prefix}-start[data-running="1"]:hover .${prefix}-label,${P} #${prefix}-start[data-running="1"]:focus-visible .${prefix}-label{display:none}
+${P} #${prefix}-start[data-running="1"]:hover .${prefix}-stoplabel,${P} #${prefix}-start[data-running="1"]:focus-visible .${prefix}-stoplabel{display:block}
+@media (hover:none){${P} #${prefix}-start[data-running="1"] .${prefix}-label{display:none}${P} #${prefix}-start[data-running="1"] .${prefix}-stoplabel{display:block}}
 ${P} #${prefix}-log{height:180px;overflow-y:auto;overscroll-behavior:contain;padding:6px 10px 8px;border-top:1px solid var(--p-line);background:var(--p-log);font:11px/1.6 ${FONT_MONO}}
 ${P} #${prefix}-log>div{display:flex;gap:6px;align-items:baseline}
 ${P} .${prefix}-ts{color:var(--p-dim);opacity:.7;flex:0 0 auto;font-variant-numeric:tabular-nums}
@@ -730,7 +734,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     gm: gm2,
     onStart
   }) {
-    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, metaEl, subEl, headPct;
+    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, stopEl, metaEl, subEl, headPct;
     const pendingLogs = [];
     function appendLine(t, msg) {
       const line = document.createElement("div");
@@ -798,10 +802,12 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         subEl.style.display = bits.length ? "" : "none";
       }
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";
+      if (btnStart) btnStart.dataset.running = state2.running && !state2.stopFlag ? "1" : "0";
       if (labelEl) {
         const pctTxt = hasProg ? ` ${pct}%` : "";
-        labelEl.textContent = state2.stopFlag && state2.running ? "\u23F8 \u505C\u6B62\u4E2D\u2026" : state2.running ? `\u23F8 \u505C\u6B62${pctTxt}` : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210 100%" : pct > 0 ? `\u25B6 \u7EE7\u7EED${pctTxt}` : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
+        labelEl.textContent = state2.stopFlag && state2.running ? "\u23F8 \u505C\u6B62\u4E2D\u2026" : state2.running ? `\u8FDB\u884C\u4E2D${pctTxt}` : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210 100%" : pct > 0 ? `\u25B6 \u7EE7\u7EED${pctTxt}` : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
       }
+      if (stopEl) stopEl.textContent = state2.running && !state2.stopFlag ? `\u23F8 \u505C\u6B62${hasProg ? ` ${pct}%` : ""}` : "";
     }
     function headerColor(fallback) {
       try {
@@ -898,7 +904,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           <div class="${prefix}-sub"></div>
         </div>
         <div class="${prefix}-btnwrap">
-          <button id="${prefix}-start" type="button"><i class="${prefix}-track"></i><i class="${prefix}-fill"></i><span class="${prefix}-label"></span></button>
+          <button id="${prefix}-start" type="button"><i class="${prefix}-track"></i><i class="${prefix}-fill"></i><span class="${prefix}-label"></span><span class="${prefix}-stoplabel"></span></button>
         </div>
         <div id="${prefix}-log"></div>
       </div>`;
@@ -921,6 +927,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       fillEl = box.querySelector(`.${prefix}-fill`);
       trackEl = box.querySelector(`.${prefix}-track`);
       labelEl = box.querySelector(`.${prefix}-label`);
+      stopEl = box.querySelector(`.${prefix}-stoplabel`);
       metaEl = box.querySelector(`.${prefix}-meta`);
       subEl = box.querySelector(`.${prefix}-sub`);
       headPct = box.querySelector(`.${prefix}-headpct`);

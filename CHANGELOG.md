@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.15 — 2026-11-18
+
+### 新功能
+
+- **ui**: 快刷脚本不显示剩余时间 (#25) ([7fc8867](https://github.com/moocctt/tobacco-mooc-study/commit/7fc886713bc2588e21acd0fbe2c1c86526d39a1c))
+
 ## 0.0.14 — 2026-11-18
 
 ### 修复

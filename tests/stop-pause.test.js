@@ -10,7 +10,7 @@ const has = (s) => src.includes(s);
 const results = [];
 const check = (name, cond) => results.push([name, !!cond]);
 
-check("版本升级到 0.0.18", has("// @version      0.0.18"));
+check("版本升级到 0.0.19", has("// @version      0.0.19"));
 check("停止时查询 video 与 audio", has('document.querySelectorAll("video, audio").forEach((x) => {'));
 check("停止时同步调用 pause", has("if (!x.paused && !x.ended) x.pause();"));
 check("停止日志说明已暂停播放", has('panel.log("\\u6B63\\u5728\\u505C\\u6B62\\u5E76\\u6682\\u505C\\u64AD\\u653E\\u2026")'));

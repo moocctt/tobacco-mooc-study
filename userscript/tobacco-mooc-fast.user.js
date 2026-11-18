@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.18
+// @version      0.0.19
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -293,12 +293,6 @@
       }
       return out;
     }
-    async function sectionStudyTime(courseId, sec) {
-      if (!courseId) return null;
-      const list = await sections(courseId, state2.versionId, state2.isRegister);
-      const hit = list.find((s) => String(s.id) === String(sec.id) || (sec.rid && String(s.rid) === String(sec.rid)));
-      return hit ? Number(hit.studied) || 0 : null;
-    }
     async function openCourse(courseId) {
       const [code, det] = await api2.req("POST", API.REGISTER, { data: { courseId } });
       if (code !== 200 || typeof det !== "object" || !det) return openLibraryCourse(courseId);
@@ -368,9 +362,7 @@
         return [settled, settled ? "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u5DF2\u7ED3\u7B97" : "\u5B50\u8BFE\u7A0B\u5B8C\u6210, \u7236\u8BB0\u5F55\u7ED3\u7B97\u672A\u786E\u8BA4(\u7A0D\u540E\u590D\u6838)"];
       }
       const step0 = config2.getStep();
-      let total = null, submitted = 0, prevRem = null, conflicts = 0, reports = 0;
-      let stallSince = null, stallBaseStudy = null, stallLastPoll = 0;
-      const STALL_POLL_MS = 3e4, STALL_CONFIRM_MS = 18e4;
+      let total = null, submitted = 0, conflicts = 0, reports = 0;
       const HARD_ROUND_CAP = Number(config2.roundHardCap) > 0 ? Number(config2.roundHardCap) : 5000;
       for (let i = 0; ; i++) {
         if (state2.stopFlag) return [false, "\u5DF2\u505C\u6B62"];
@@ -390,50 +382,6 @@
         if (rem <= 0) {
           if (submitted || sec.studied) return [true, `\u65F6\u957F\u5DF2\u7528\u5B8C\uFF08\u5171 ${submitted}s\uFF09`];
           return [true, "\u8BE5\u5C0F\u8282\u65E0\u5269\u4F59\u65F6\u957F"];
-        }
-        const previousRem = prevRem;
-        prevRem = rem;
-        if (previousRem !== null && rem > previousRem) {
-          if (stallSince !== null) log("\u21BA \u5269\u4F59\u65F6\u957F\u56DE\u5347, \u64A4\u9500\u914D\u989D\u89C2\u5BDF");
-          stallSince = null;
-          stallBaseStudy = null;
-          stallLastPoll = 0;
-        } else if (previousRem !== null && rem === previousRem) {
-          if (stallSince === null) {
-            stallSince = Date.now();
-            stallLastPoll = stallSince;
-            try { stallBaseStudy = await sectionStudyTime(courseId, sec); } catch { stallBaseStudy = null; }
-            log("\u23F3 \u5269\u4F59\u65F6\u957F\u672A\u4E0B\u964D, \u5F00\u59CB\u89C2\u5BDF (\u5E73\u53F0\u805A\u5408\u53EF\u80FD\u5EF6\u8FDF)");
-          }
-          const waited = Date.now() - stallSince;
-          if (waited - stallLastPoll >= STALL_POLL_MS || waited >= STALL_CONFIRM_MS) {
-            stallLastPoll = Date.now();
-            let nowStudy = null;
-            try { nowStudy = await sectionStudyTime(courseId, sec); } catch { nowStudy = null; }
-            if (nowStudy !== null && stallBaseStudy !== null && nowStudy > stallBaseStudy) {
-              log(`\u2713 \u670D\u52A1\u7AEF\u5B66\u65F6\u5DF2\u589E\u957F (${stallBaseStudy}\u2192${nowStudy}), \u64A4\u9500\u914D\u989D\u89C2\u5BDF`);
-              stallSince = null;
-              stallBaseStudy = null;
-              stallLastPoll = 0;
-            } else if (waited >= STALL_CONFIRM_MS) {
-              log(`\u23F3 \u5269\u4F59\u65F6\u957F\u8FDE\u7EED ${Math.round(waited / 1e3)}s \u672A\u4E0B\u964D (${rem}s), \u4ECD\u7EE7\u7EED\u4E0A\u62A5\uff08\u4E0D\u56E0\u6B64\u505C\u6B62\uff09`);
-              stallSince = null;
-              stallBaseStudy = null;
-              stallLastPoll = 0;
-            } else {
-              log(`\u23F3 \u4ECD\u5728\u89C2\u5BDF: \u5269\u4F59\u65F6\u957F ${rem}s, \u5DF2\u7B49\u5F85 ${Math.round(waited / 1e3)}s`);
-            }
-          }
-          if (stallSince !== null) {
-            await sleep(STALL_POLL_MS);
-            i -= 1;
-            continue;
-          }
-        } else if (previousRem !== null && stallSince !== null) {
-          log("\u2713 \u5269\u4F59\u65F6\u957F\u5DF2\u6062\u590D\u4E0B\u964D, \u64A4\u9500\u914D\u989D\u89C2\u5BDF");
-          stallSince = null;
-          stallBaseStudy = null;
-          stallLastPoll = 0;
         }
         if (total === null) total = rem + (Number(sec.studied) || 0);
         const step = Math.min(step0, rem, API.MAX_STEP);

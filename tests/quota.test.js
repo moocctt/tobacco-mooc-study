@@ -29,10 +29,10 @@ function makeEngine({ remAt, studyAt, reportBody, roundHardCap = 5000 }) {
       if (p.endsWith("/subject/chapter-progress")) {
         return [200, [{ courseChapterSections: [{
           referenceId: "s1", resourceId: "s1", sectionName: "视频一", sectionType: 6,
-          progress: { finishStatus: 0, studyTotalTime: studyAt(clock) }
+          progress: { finishStatus: 0, studyTotalTime: studyAt(clock, reportCalls) }
         }] }]];
       }
-      if (p.includes("/start-progress/")) return [200, { id: "log-" + String(clock), remainingTime: remAt(clock) }];
+      if (p.includes("/start-progress/")) return [200, { id: "log-" + String(clock), remainingTime: remAt(clock, reportCalls) }];
       if (p.endsWith("/video-progress")) { reportCalls += 1; return [200, reportBody || { finishStatus: 0 }]; }
       if (p.endsWith("/course-progress-update") || p.endsWith("/course-section-progress")) return [200, {}];
       throw new Error("unexpected path " + p);
@@ -75,27 +75,27 @@ const results = [];
 const check = (name, cond, extra) => results.push([name, !!cond, extra]);
 
 (async () => {
-  // 平台聚合延迟：前两分钟 studyTotalTime 会涨，remainingTime 却不涨；之后一起恢复。
+  // 平台聚合延迟：remainingTime 前几轮不下降，也必须继续上报直到完成。
   {
-    const { engine, state, logs } = makeEngine({
-      remAt: (t) => (t < 135e3 ? 360 : 0),
-      studyAt: (t) => (t < 60e3 ? 0 : 90)
+    const { engine, state, logs, reportCalls } = makeEngine({
+      remAt: (t, n) => (n < 3 ? 360 : 0),
+      studyAt: (t, n) => (n < 2 ? 0 : 90)
     });
     const r = await engine.runAll();
     check("延迟增长不判配额", r.quotaHit === false, JSON.stringify(r));
     check("延迟增长能完成", r.ok === true && state.prog.secDone === 1, JSON.stringify({ r, secDone: state.prog.secDone }));
-    check("延迟增长日志有观察提示", logs.some((m) => /未下降|观察|复核|聚合/.test(m)), logs.join(" | "));
+    check("剩余时长不下降不阻塞上报", reportCalls() >= 3 && !logs.some((m) => /观察|聚合延迟/.test(m)), JSON.stringify({ reportCalls: reportCalls(), logs }));
   }
 
-  // 剩余时长回升说明服务端重算，不应沿用旧的停滞计时。
+  // 剩余时长回升说明服务端重算，继续上报即可，不需要停滞计时。
   {
-    const { engine, logs } = makeEngine({
-      remAt: (t) => (t < 30e3 ? 360 : t < 60e3 ? 370 : 0),
+    const { engine, reportCalls } = makeEngine({
+      remAt: (t, n) => (n < 3 ? 360 : n < 5 ? 370 : 0),
       studyAt: () => 0
     });
     const r = await engine.runAll();
     check("回升不判配额", r.quotaHit === false && r.ok === true, JSON.stringify(r));
-    check("回升有重新计时日志", logs.some((m) => /\u56DE\u5347/.test(m)), logs.join(" | "));
+    check("回升继续上报", reportCalls() >= 5, JSON.stringify({ r, reportCalls: reportCalls() }));
   }
 
   // 平台明确回配额文案时，优先按显式信号停下，不再靠猜测。

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.13
+// @version      0.0.14
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -244,8 +244,12 @@
       const frac = p.sectionTotalSec ? Math.min(1, p.sectionSec / p.sectionTotalSec) : 0;
       const nt = Math.max(0, Number(p.nestedTotal) || 0);
       p.curFrac = depth > 0 && nt ? Math.min(1, ((Number(p.nestedDone) || 0) + frac) / nt) : frac;
-      const elapsed = t0 ? Date.now() - t0 : 0;
-      p.etaMs = p.sectionTotalSec && p.sectionSec > 0 && elapsed > 1500 ? Math.max(0, (p.sectionTotalSec - p.sectionSec) / (p.sectionSec / elapsed)) : null;
+      const elapsed = t0 ? Math.max(1, Date.now() - t0) : 0;
+      const remaining = Math.max(0, p.sectionTotalSec - p.sectionSec);
+      // 快速模式首轮常在 1.5s 内完成，仍需给出可感知的下限，避免 ETA 整段空白。
+      p.etaMs = p.sectionTotalSec && p.sectionSec > 0 && remaining > 0 && elapsed > 0
+        ? Math.max(1100, remaining / (p.sectionSec / elapsed))
+        : null;
     }
     function resetCourseProgress(secTotal) {
       const p = state2.prog;

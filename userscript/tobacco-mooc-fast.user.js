@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.9
+// @version      0.0.10
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -782,7 +782,6 @@
     const P = `#${prefix}-box`;
     return `
 ${P}{--p-bg:rgba(255,255,255,.92);--p-fg:#1f2328;--p-dim:#59636e;--p-line:#e6eaef;--p-log:rgba(246,248,250,.72);--p-focus:#0969da;--p-accent:#57606a;--p-on-accent:#fff;background:var(--p-bg);backdrop-filter:blur(10px) saturate(1.15);border:1px solid var(--p-line);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px -8px rgba(0,0,0,.32),0 2px 8px rgba(0,0,0,.06);font:12px/1.5 ${FONT_UI};color:var(--p-fg);-webkit-font-smoothing:antialiased}
-${P}[data-dark="1"]{--p-bg:rgba(28,32,38,.92);--p-fg:#e6edf3;--p-dim:#9198a1;--p-line:rgba(255,255,255,.1);--p-log:rgba(0,0,0,.2);--p-focus:#4493f8}
 ${P} ::selection{background:rgba(9,105,218,.22)}
 ${P} .${prefix}-head{padding:7px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--p-accent);color:var(--p-on-accent)}
 ${P} .${prefix}-title{font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -935,15 +934,6 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       }
       return { bg: fallback, light: true };
     }
-    function pageIsDark() {
-      try {
-        const m = getComputedStyle(document.body).backgroundColor.match(/^rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\)$/);
-        if (m && (m[4] === void 0 || parseFloat(m[4]) >= 0.5)) return 0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3] < 128;
-        return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      } catch {
-        return false;
-      }
-    }
     function makeDraggable(head, panel2, onToggle) {
       let sx = 0, sy = 0, px = 0, py = 0, moved = false;
       head.addEventListener("mousedown", (e) => {
@@ -1068,13 +1058,11 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
           }
         }
         const theme = headerColor(fallbackColor);
-        const dark = pageIsDark();
-        const key = `${theme.bg}|${theme.light ? "L" : "D"}|${dark ? "D" : "L"}`;
+        const key = `${theme.bg}|${theme.light ? "L" : "D"}`;
         if (key === last) return;
         last = key;
         box.style.setProperty("--p-accent", theme.bg);
         box.style.setProperty("--p-on-accent", theme.light ? "#fff" : "#1f2328");
-        box.dataset.dark = dark ? "1" : "0";
         if (!state2.pinned && !state2.stacked) {
           box.style.top = "auto";
           box.style.bottom = "16px";

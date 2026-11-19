@@ -7,13 +7,14 @@ const isUnattended = /\bsyncProgress\(depth2\)/.test(src);
 const out = [];
 const check = (label, ok) => out.push(`${ok ? "PASS" : "FAIL"} ${label}`);
 
-check("createPanel 接受 submittedWord 参数", /submittedWord = "\\u5DF2\\u62A5"/.test(src));
+check("createPanel 接受 submittedWord 参数", /submittedWord = "已记录"/.test(src));
 check("副行使用 submittedWord 变量", /bits\.push\(`\$\{submittedWord\} \$\{/.test(src));
+check("格式化时长函数存在", /function fmtDuration\(/.test(src));
 check("不再用上报速度外推 ETA", !/\(dur - loc\) \/ \(loc \/ el\)/.test(src));
 check("删掉不再使用的 playT0", !/playT0/.test(src));
 
 if (isUnattended) {
-  check("无人值守传入「已播」", /submittedWord: "\\u5DF2\\u64AD"/.test(src));
+  check("无人值守传入「已播」", /submittedWord: "已播放"/.test(src));
   check("进度取播放器 currentTime", /state\.prog\.sectionSec = Math\.trunc\(c\)/.test(src));
   check("每秒刷新一次面板", /for \(let t = 0; t < 10; t\+\+\)/.test(src));
   check("ETA 用播放器剩余秒数", /\(d - c\) \* 1e3/.test(src));

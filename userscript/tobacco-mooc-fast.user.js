@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 快速刷课学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.20
+// @version      0.0.21
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -28,7 +28,7 @@
       if (!v || v === token) return;
       token = v;
       tokenOrigin = origin;
-      log(`\u4EE4\u724C\u5DF2\u6355\u83B7 (${v.slice(-8)})`);
+      log("已读取登录状态");
       const ws = tokenWaiters;
       tokenWaiters = [];
       ws.forEach((w) => w());
@@ -700,60 +700,64 @@
   function panelCss(prefix) {
     const P = `#${prefix}-box`;
     return `
-${P}{--p-bg:rgba(255,255,255,.92);--p-fg:#1f2328;--p-dim:#59636e;--p-line:#e6eaef;--p-log:rgba(246,248,250,.72);--p-focus:#0969da;--p-accent:#57606a;--p-on-accent:#fff;background:var(--p-bg);backdrop-filter:blur(10px) saturate(1.15);border:1px solid var(--p-line);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px -8px rgba(0,0,0,.32),0 2px 8px rgba(0,0,0,.06);font:12px/1.5 ${FONT_UI};color:var(--p-fg);-webkit-font-smoothing:antialiased}
-${P} ::selection{background:rgba(9,105,218,.22)}
-${P} .${prefix}-head{padding:7px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--p-accent);color:var(--p-on-accent)}
-${P} .${prefix}-title{font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-${P} .${prefix}-headright{display:flex;align-items:center;gap:7px;flex:0 0 auto}
-${P} .${prefix}-headpct{font:600 11px/1 ${FONT_MONO};font-variant-numeric:tabular-nums;opacity:.85}
-${P} .${prefix}-headstatus{display:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;opacity:.85;font-variant-numeric:tabular-nums}
+${P},${P} *{box-sizing:border-box}
+${P}{--p-bg:#fbf8f3;--p-fg:#2a2521;--p-dim:#6e645a;--p-line:#e5ddd3;--p-header:#f2ece3;--p-log:#f6f1e9;--p-accent:#b35900;--p-on-accent:#fff;background:var(--p-bg);border:1px solid var(--p-line);border-radius:12px;overflow:hidden;font:13px/1.55 ${FONT_UI};color:var(--p-fg);caret-color:var(--p-accent);-webkit-font-smoothing:antialiased}
+${P} ::selection{background:rgba(66,102,102,.18)}
+${P} .${prefix}-head{padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;user-select:none;background:var(--p-header);color:var(--p-fg);border-bottom:1px solid var(--p-line)}
+${P} .${prefix}-head:focus-visible{outline:2px solid var(--p-accent);outline-offset:-2px}
+${P} .${prefix}-title{font-size:14px;font-weight:650;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${P} .${prefix}-headright{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+${P} .${prefix}-headpct{font:600 12px/1 ${FONT_MONO};font-variant-numeric:tabular-nums;color:var(--p-accent)}
+${P} .${prefix}-headstatus{display:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:1.4;color:var(--p-dim);font-variant-numeric:tabular-nums}
 ${P}[data-collapsed="1"] .${prefix}-headstatus{display:block}
-${P} .${prefix}-chev{display:block;opacity:.75;transition:transform .18s ease,opacity .18s ease}
-${P} .${prefix}-head:hover .${prefix}-chev{opacity:1}
-${P}[data-collapsed="1"] .${prefix}-chev{transform:rotate(-90deg)}
-${P} .${prefix}-prog{padding:9px 10px 8px}
-${P} .${prefix}-course{font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
-${P} .${prefix}-meta{margin-top:4px;font-size:11px;color:var(--p-dim);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-${P} #${prefix}-status{margin-top:6px;font-size:11.5px;color:var(--p-fg);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-${P} .${prefix}-sub{margin-top:3px;font-size:11px;color:var(--p-dim);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-${P} .${prefix}-btnwrap{padding:0 10px 9px}
-${P} #${prefix}-start{position:relative;overflow:hidden;display:flex;width:100%;align-items:center;justify-content:center;height:30px;padding:0 10px;border:0;border-radius:7px;background:var(--p-accent);color:var(--p-on-accent);font:600 12px/1 ${FONT_UI};letter-spacing:.01em;cursor:pointer;transition:filter .15s ease}
-${P} #${prefix}-start:hover{filter:brightness(1.07)}
-${P} #${prefix}-start:active{filter:brightness(.96)}
-${P} #${prefix}-start:focus-visible{outline:2px solid var(--p-focus);outline-offset:2px}
-${P} .${prefix}-track{position:absolute;inset:0;background:rgba(0,0,0,.26);opacity:0;transition:opacity .2s ease;pointer-events:none}
+${P} .${prefix}-chev{display:block;color:var(--p-dim);transition:transform .18s ease}
+${P} .${prefix}-prog{padding:12px 12px 0}
+${P} .${prefix}-course{font-size:13px;font-weight:650;line-height:1.45;overflow-wrap:anywhere}
+${P} .${prefix}-meta{margin-top:4px;font-size:12px;line-height:1.45;color:var(--p-dim);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+${P} #${prefix}-status{margin-top:8px;font-size:13px;line-height:1.5;color:var(--p-fg);overflow-wrap:anywhere}
+${P} .${prefix}-sub{margin-top:4px;font-size:12px;line-height:1.5;color:var(--p-dim);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+${P} .${prefix}-btnwrap{padding:12px 12px 10px}
+${P} #${prefix}-start{position:relative;overflow:hidden;display:flex;width:100%;align-items:center;justify-content:center;height:44px;padding:0 12px;border:0;border-radius:10px;background:var(--p-accent);color:var(--p-on-accent);font:600 13px/1 ${FONT_UI};cursor:pointer;transition:background-color .15s ease}
+${P} #${prefix}-start:hover{background:#395b5b}
+${P} #${prefix}-start:active{background:#325151}
+${P} #${prefix}-start:focus-visible{outline:2px solid var(--p-accent);outline-offset:2px}
+${P} #${prefix}-start:disabled{background:var(--p-line);color:var(--p-dim);cursor:default}
+${P} #${prefix}-start:disabled .${prefix}-track,${P} #${prefix}-start:disabled .${prefix}-fill{display:none}
+${P} .${prefix}-track{position:absolute;inset:0;background:rgba(0,0,0,.28);opacity:0;transition:opacity .2s ease;pointer-events:none}
 ${P} .${prefix}-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--p-accent);transition:width .35s cubic-bezier(.22,.61,.36,1);pointer-events:none}
 ${P} .${prefix}-label{position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${P} .${prefix}-stoplabel{display:none;position:relative;z-index:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${P} #${prefix}-start[data-running="1"]:hover .${prefix}-label,${P} #${prefix}-start[data-running="1"]:focus-visible .${prefix}-label{display:none}
 ${P} #${prefix}-start[data-running="1"]:hover .${prefix}-stoplabel,${P} #${prefix}-start[data-running="1"]:focus-visible .${prefix}-stoplabel{display:block}
 @media (hover:none){${P} #${prefix}-start[data-running="1"] .${prefix}-label{display:none}${P} #${prefix}-start[data-running="1"] .${prefix}-stoplabel{display:block}}
-${P} #${prefix}-log{height:180px;overflow-y:auto;overscroll-behavior:contain;padding:6px 10px 8px;border-top:1px solid var(--p-line);background:var(--p-log);font:11px/1.6 ${FONT_MONO}}
+${P} #${prefix}-log{min-height:96px;max-height:clamp(140px,26vh,180px);overflow-y:auto;overscroll-behavior:contain;padding:8px 12px 10px;border-top:1px solid var(--p-line);background:var(--p-log);font:11px/1.65 ${FONT_MONO};color:var(--p-fg);scrollbar-color:rgba(110,100,90,.32) transparent}
+${P} #${prefix}-log .${prefix}-empty{font:12px/1.6 ${FONT_UI};color:var(--p-dim);padding:2px 0}
 ${P} #${prefix}-log>div{display:flex;gap:6px;align-items:baseline}
 ${P} .${prefix}-ts{color:var(--p-dim);flex:0 0 auto;font-variant-numeric:tabular-nums}
 ${P} .${prefix}-tx{flex:1 1 auto;min-width:0;white-space:pre-wrap;word-break:break-word}
 ${P} .${prefix}-tx.is-banner{font-weight:600}
 ${P} #${prefix}-log::-webkit-scrollbar{width:8px}
-${P} #${prefix}-log::-webkit-scrollbar-thumb{background:rgba(130,130,130,.32);border-radius:4px}
-${P} #${prefix}-log::-webkit-scrollbar-thumb:hover{background:rgba(130,130,130,.5)}
+${P} #${prefix}-log::-webkit-scrollbar-thumb{background:rgba(110,100,90,.32);border-radius:4px}
+${P} #${prefix}-log::-webkit-scrollbar-thumb:hover{background:rgba(110,100,90,.48)}
 ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
+@media (prefers-reduced-motion:reduce){${P} #${prefix}-start,${P} .${prefix}-fill,${P} .${prefix}-chev{transition:none}}
 `;
   }
   function createPanel({
     prefix,
     title,
     fallbackColor,
-    emoji,
-    verb,
     consoleTag,
-    submittedWord = "\u5DF2\u62A5",
+    submittedWord = "已记录",
+    hasToken = () => true,
+    onLogin = () => {},
     state: state2,
     lockOwner,
     currentBid: currentBid2,
     gm: gm2,
     onStart
   }) {
-    let box, logEl, statusEl, btnStart, progEl, courseEl, fillEl, trackEl, labelEl, stopEl, metaEl, subEl, headStatus, headPct;
+    let box, logEl, statusEl, btnStart, btnWrap, progEl, courseEl, fillEl, trackEl, labelEl, stopEl, metaEl, subEl, headStatus, headPct;
     const pendingLogs = [];
     function appendLine(t, msg) {
       const line = document.createElement("div");
@@ -765,6 +769,8 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       tx.textContent = msg;
       line.appendChild(ts);
       line.appendChild(tx);
+      const empty = logEl.querySelector(`.${prefix}-empty`);
+      if (empty) empty.remove();
       logEl.appendChild(line);
       while (logEl.children.length > 60) logEl.removeChild(logEl.firstChild);
       logEl.scrollTop = logEl.scrollHeight;
@@ -787,75 +793,93 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       const overall = coursesTotal > 1 ? Math.min(1, ((Number(p.coursesDone) || 0) + courseFrac) / coursesTotal) : courseFrac;
       return { pct: Math.round(overall * 100), secTotal, coursesTotal };
     }
+    function fmtDuration(value) {
+      const s = Math.max(0, Math.trunc(Number(value) || 0));
+      if (s < 60) return `${s} 秒`;
+      const m = Math.floor(s / 60), r = s % 60;
+      if (m < 60) return r ? `${m} 分 ${r} 秒` : `${m} 分钟`;
+      const h = Math.floor(m / 60), rm = m % 60;
+      return rm ? `${h} 小时 ${rm} 分钟` : `${h} 小时`;
+    }
     function ui() {
       if (!statusEl) return;
       const p = state2.prog || {};
       const { pct, secTotal, coursesTotal } = pctInfo();
       const hasProg = !!(secTotal || coursesTotal);
+      const loggedIn = !hasToken || hasToken();
+      const otherTask = !state2.running && !!lockOwner();
+      const stopping = state2.running && state2.stopFlag;
+      const complete = !state2.running && pct >= 100;
+      const pctText = hasProg ? ` ${pct}%` : "";
       if (progEl) progEl.style.display = hasProg ? "" : "none";
-      if (fillEl) fillEl.style.width = hasProg ? pct + "%" : "0";
-      if (trackEl) trackEl.style.opacity = hasProg && pct > 0 ? "1" : "0";
+      if (fillEl) {
+        fillEl.style.width = hasProg ? pct + "%" : "0";
+        fillEl.style.opacity = loggedIn ? "1" : "0";
+      }
+      if (trackEl) trackEl.style.opacity = hasProg && pct > 0 && loggedIn ? "1" : "0";
       if (courseEl) {
         courseEl.textContent = state2.course || "";
         courseEl.style.display = state2.course ? "" : "none";
       }
       if (metaEl) {
         const bits = [];
-        if (secTotal) bits.push(`\u5C0F\u8282 ${Math.min(Number(p.secDone) || 0, secTotal)}/${secTotal}`);
-        if (coursesTotal > 1) bits.push(`\u8BFE\u7A0B ${Math.min((Number(p.coursesDone) || 0) + (state2.running ? 1 : 0), coursesTotal)}/${coursesTotal}`);
-        metaEl.textContent = bits.join(" \xB7 ");
+        if (secTotal) bits.push(`小节 ${Math.min(Number(p.secDone) || 0, secTotal)}/${secTotal}`);
+        if (coursesTotal > 1) bits.push(`课程 ${Math.min((Number(p.coursesDone) || 0) + (state2.running ? 1 : 0), coursesTotal)}/${coursesTotal}`);
+        metaEl.textContent = bits.join("，");
       }
-      const statusText = state2.running ? state2.section || "\u51C6\u5907\u4E2D" : lockOwner() ? "\u25A0 \u5DF2\u505C\u6B62 (\u53E6\u4E00\u4EFB\u52A1/\u811A\u672C\u8FD0\u884C\u4E2D)" : currentBid2() ? "\u25A0 \u5DF2\u505C\u6B62 \xB7 \u5F53\u524D\u9875\u8BFE\u7A0B/\u4E13\u9898" : "\u25A0 \u5DF2\u505C\u6B62 \xB7 \u4E2A\u4EBA\u5B66\u4E60\u4EFB\u52A1";
+      let statusText = "尚未开始";
+      if (state2.running) statusText = state2.section || "准备中";
+      else if (otherTask) statusText = "另一个标签页正在学习";
+      else if (!loggedIn) statusText = "登录后可开始";
+      else if (complete) statusText = "已完成";
+      else if (pct > 0) statusText = "已暂停";
       statusEl.textContent = statusText;
-      statusEl.title = statusText;
       if (subEl) {
         const bits = [];
         if (state2.running) {
-          if (state2.round) bits.push(`\u7B2C ${state2.round} \u8F6E`);
+          if (state2.round) bits.push(`第 ${state2.round} 轮`);
           const tot = Math.trunc(Number(p.sectionTotalSec) || 0);
           const sub = Math.trunc(Number(state2.submitted) || 0);
-          if (tot) bits.push(`${submittedWord} ${Math.trunc(Number(p.sectionSec) || 0)}/${tot}s`);
-          else if (sub) bits.push(`${submittedWord} ${sub}s`);
+          if (tot) bits.push(`${submittedWord} ${fmtDuration(p.sectionSec)} / 共 ${fmtDuration(tot)}`);
+          else if (sub) bits.push(`${submittedWord} ${fmtDuration(sub)}`);
         }
-        subEl.textContent = bits.join(" \xB7 ");
-        subEl.title = subEl.textContent;
+        subEl.textContent = bits.join("，");
         subEl.style.display = bits.length ? "" : "none";
       }
       if (headStatus) {
-        const compact = state2.stopFlag && state2.running ? "\u23F8 \u505C\u6B62\u4E2D" : state2.running ? "\u25B6 \u64AD\u653E\u4E2D" : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210" : pct > 0 ? "\u25A0 \u5DF2\u6682\u505C" : "\u25A0 \u5DF2\u505C\u6B62";
+        const compact = stopping ? "正在停止" : state2.running ? "学习中" : otherTask ? "另一标签页" : !loggedIn ? "未登录" : complete ? "已完成" : pct > 0 ? "已暂停" : "尚未开始";
         headStatus.textContent = state2.collapsed ? compact : "";
-        headStatus.title = headStatus.textContent;
       }
       if (headPct) headPct.textContent = state2.collapsed && hasProg ? pct + "%" : "";
-      if (btnStart) btnStart.dataset.running = state2.running && !state2.stopFlag ? "1" : "0";
-      if (labelEl) {
-        const pctTxt = hasProg ? ` ${pct}%` : "";
-        labelEl.textContent = state2.stopFlag && state2.running ? "\u23F8 \u505C\u6B62\u4E2D\u2026" : state2.running ? `\u8FDB\u884C\u4E2D${pctTxt}` : pct >= 100 ? "\u2713 \u5DF2\u5B8C\u6210 100%" : pct > 0 ? `\u25B6 \u7EE7\u7EED${pctTxt}` : currentBid2() ? `${emoji} ${verb}\u672C\u8BFE\u7A0B/\u4E13\u9898` : `${emoji} \u6267\u884C\u5B66\u4E60\u4EFB\u52A1`;
-      }
-      if (stopEl) stopEl.textContent = state2.running && !state2.stopFlag ? `\u23F8 \u505C\u6B62${hasProg ? ` ${pct}%` : ""}` : "";
-    }
-    function headerColor(fallback) {
-      try {
-        const els = document.elementsFromPoint(1, 1);
-        const top = els.find((el) => {
-          if (el === document.documentElement || el === document.body) return false;
-          const cs = getComputedStyle(el);
-          return (cs.position === "fixed" || cs.position === "sticky") && el.offsetHeight > 0 && el.offsetHeight < 200;
-        });
-        if (top) {
-          for (const el of [top, ...top.querySelectorAll("*")]) {
-            const bg = getComputedStyle(el).backgroundColor;
-            const m = bg.match(/^rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\)$/);
-            if (!m) continue;
-            if (m[4] !== void 0 && parseFloat(m[4]) < 1) continue;
-            const [r, g, b] = [+m[1], +m[2], +m[3]];
-            if (r > 246 && g > 246 && b > 246) continue;
-            return { bg, light: 0.299 * r + 0.587 * g + 0.114 * b < 160 };
-          }
+      if (btnWrap) btnWrap.style.display = complete && loggedIn ? "none" : "";
+      if (btnStart) {
+        let label = "开始全部任务";
+        let disabled = false;
+        if (stopping) {
+          label = "正在停止…";
+          disabled = true;
+        } else if (state2.running) {
+          label = `学习中${pctText}`;
+        } else if (otherTask) {
+          label = "另一个标签页学习中";
+          disabled = true;
+        } else if (!loggedIn) {
+          label = "去登录";
+        } else if (complete) {
+          label = currentBid2() ? "本课程已完成" : "没有待学内容";
+          disabled = true;
+        } else if (pct > 0) {
+          label = `继续学习${pctText}`;
+        } else if (currentBid2()) {
+          label = "开始本课程";
         }
-      } catch {
+        btnStart.disabled = disabled;
+        btnStart.dataset.running = state2.running && !state2.stopFlag ? "1" : "0";
+        if (labelEl) labelEl.textContent = label;
+        const stopText = `停止${pctText}`;
+        btnStart.setAttribute("aria-label", state2.running && !state2.stopFlag ? `${label}，${stopText}` : label);
+        if (stopEl) stopEl.textContent = state2.running && !state2.stopFlag ? stopText : "";
       }
-      return { bg: fallback, light: true };
     }
     function makeDraggable(head, panel2, onToggle) {
       let sx = 0, sy = 0, px = 0, py = 0, moved = false;
@@ -900,22 +924,23 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       if (!box) return;
       const body = box.querySelector(`.${prefix}-body`);
       body.style.display = c ? "none" : "";
-      box.style.width = c ? "auto" : "340px";
+      box.style.width = c ? "auto" : "min(360px, calc(100vw - 24px))";
       box.dataset.collapsed = c ? "1" : "0";
-      box.title = c ? "\u70B9\u51FB\u6807\u9898\u680F\u5C55\u5F00" : "\u70B9\u51FB\u6807\u9898\u680F\u6298\u53E0";
+      const head = box.querySelector(`.${prefix}-head`);
+      if (head) head.setAttribute("aria-expanded", c ? "false" : "true");
       ui();
     }
     function mount() {
       if (box && (!document.contains || document.contains(box))) return;
       const buddy = document.querySelector(".um-head, .uf-head");
       if (buddy) state2.stacked = true;
-      const posCss = state2.stacked ? `top:${Math.round(buddy.parentElement.getBoundingClientRect().bottom + 12)}px` : "bottom:16px";
+      const posCss = state2.stacked ? `top:${Math.round(buddy.parentElement.getBoundingClientRect().bottom + 12)}px` : "bottom:max(16px, env(safe-area-inset-bottom))";
       box = document.createElement("div");
       box.id = `${prefix}-box`;
-      box.style.cssText = `position:fixed;${posCss};right:12px;z-index:999999;width:340px;`;
+      box.style.cssText = `position:fixed;${posCss};right:12px;z-index:999999;width:min(360px, calc(100vw - 24px));max-width:calc(100vw - 24px);`;
       box.innerHTML = `
       <style>${panelCss(prefix)}</style>
-      <div class="${prefix}-head">
+      <div class="${prefix}-head" role="button" tabindex="0" aria-expanded="true">
         <span class="${prefix}-title">${title}</span>
         <span class="${prefix}-headright"><span class="${prefix}-headstatus"></span><span class="${prefix}-headpct"></span><svg class="${prefix}-chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.75 4.5 6 7.75 9.25 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </div>
@@ -931,7 +956,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         <div class="${prefix}-btnwrap">
           <button id="${prefix}-start" type="button"><i class="${prefix}-track"></i><i class="${prefix}-fill"></i><span class="${prefix}-label"></span><span class="${prefix}-stoplabel"></span></button>
         </div>
-        <div id="${prefix}-log"></div>
+        <div id="${prefix}-log"><div class="${prefix}-empty">开始后会显示学习记录</div></div>
       </div>`;
       const root = document.documentElement || document.body;
       if (!root) return;
@@ -947,6 +972,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       logEl = box.querySelector(`#${prefix}-log`);
       statusEl = box.querySelector(`#${prefix}-status`);
       btnStart = box.querySelector(`#${prefix}-start`);
+      btnWrap = box.querySelector(`.${prefix}-btnwrap`);
       progEl = box.querySelector(`.${prefix}-pwrap`);
       courseEl = box.querySelector(`.${prefix}-course`);
       fillEl = box.querySelector(`.${prefix}-fill`);
@@ -960,14 +986,47 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
       if (pendingLogs.length) {
         for (const [t, msg] of pendingLogs.splice(0)) appendLine(t, msg);
       }
-      makeDraggable(box.querySelector(`.${prefix}-head`), box, () => setCollapsed(!state2.collapsed));
+      const head = box.querySelector(`.${prefix}-head`);
+      makeDraggable(head, box, () => setCollapsed(!state2.collapsed));
+      head.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        setCollapsed(!state2.collapsed);
+      });
       btnStart.onclick = (e) => {
         e.stopPropagation();
+        if (hasToken && !hasToken()) {
+          onLogin();
+          return;
+        }
         onStart();
       };
       setCollapsed(!!gm2.getValue("collapsed", false));
       ui();
       watchTheme();
+    }
+    function headerColor(fallback) {
+      try {
+        const els = document.elementsFromPoint(1, 1);
+        const top = els.find((el) => {
+          if (el === document.documentElement || el === document.body) return false;
+          const cs = getComputedStyle(el);
+          return (cs.position === "fixed" || cs.position === "sticky") && el.offsetHeight > 0 && el.offsetHeight < 200;
+        });
+        if (top) {
+          for (const el of [top, ...top.querySelectorAll("*")]) {
+            const bg = getComputedStyle(el).backgroundColor;
+            const m = bg.match(/^rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s\/]+([\d.]+))?\)$/);
+            if (!m) continue;
+            if (m[4] !== void 0 && parseFloat(m[4]) < 1) continue;
+            const [r, g, b] = [+m[1], +m[2], +m[3]];
+            if (r > 246 && g > 246 && b > 246) continue;
+            return { bg, light: 0.299 * r + 0.587 * g + 0.114 * b < 160 };
+          }
+        }
+      } catch {
+      }
+      return { bg: fallback, light: true };
     }
     function watchTheme() {
       let last = "";
@@ -982,16 +1041,16 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
             box.style.top = top + "px";
           }
         }
+        if (!state2.pinned && !state2.stacked) {
+          box.style.top = "auto";
+          box.style.bottom = "max(16px, env(safe-area-inset-bottom))";
+        }
         const theme = headerColor(fallbackColor);
         const key = `${theme.bg}|${theme.light ? "L" : "D"}`;
         if (key === last) return;
         last = key;
         box.style.setProperty("--p-accent", theme.bg);
         box.style.setProperty("--p-on-accent", theme.light ? "#fff" : "#1f2328");
-        if (!state2.pinned && !state2.stacked) {
-          box.style.top = "auto";
-          box.style.bottom = "16px";
-        }
       };
       tick();
       setInterval(tick, 2e3);
@@ -1054,7 +1113,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     roundSleepMs: () => rand(600, 1600),
     roundsSlack: 5,
     taskGapMs: () => rand(1500, 3e3),
-    coursePageLabel: "\u5FEB\u901F\u5237\u672C\u8BFE\u7A0B/\u4E13\u9898"
+    coursePageLabel: "开始学习本课程/专题"
   };
   var TAB = (() => { try { const k = "__MOOC_US_TAB__"; let v = sessionStorage.getItem(k); if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem(k, v); } return v; } catch { return Math.random().toString(36).slice(2, 10); } })();
   var lock = createLock("fast");
@@ -1065,16 +1124,21 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
   var engine;
   var panel = createPanel({
     prefix: "uf",
-    title: "\u5FEB\u901F\u5237\u8BFE\u5B66\u4E60\u52A9\u624B",
+    title: "快速学习助手",
     fallbackColor: "#b35900",
-    emoji: "\u26A1",
-    verb: "\u5237",
-    consoleTag: "\u5FEB\u901F\u5237\u8BFE",
+    consoleTag: "快速刷课",
+    submittedWord: "已记录",
+    hasToken: () => !!hunter.getToken(),
+    onLogin: () => { location.hash = "#/login"; },
     state,
     lockOwner: lock.lockOwner,
     currentBid,
     gm,
     onStart: () => {
+      if (!hunter.getToken()) {
+        panel.log("请先登录学习平台");
+        return;
+      }
       if (state.running) {
         state.stopFlag = true;
         panel.log("\u6B63\u5728\u505C\u6B62(\u7B49\u5F53\u524D\u8F6E\u7ED3\u675F)\u2026");
@@ -1120,6 +1184,7 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
         runAll: () => engine.runAll(),
         currentBidFromHash: () => currentBid(),
         log: panel.log,
+        ui: panel.ui,
         core: {
           pystr,
           toParams,

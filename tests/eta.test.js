@@ -18,7 +18,7 @@ if (isFast) {
   check("快刷副行仍显示轮次", /if \(state2\.round\) bits\.push/.test(src));
   check("快刷副行仍显示已报秒数", /bits\.push\(`\$\{submittedWord\} \$\{/.test(src));
   check("进度更新不再接收计时起点", !/setSectionProgress\(submitted, total, secT0/.test(src));
-  check("宽度不足可悬停看完整副行", /subEl\.title = subEl\.textContent/.test(src));
+  check("不再用 title 兜底完整副行", !/subEl\.title =/.test(src));
 } else {
   const a = src.indexOf("    function etaSense(ms) {");
   const b = src.indexOf("    function ui() {", a);
@@ -34,10 +34,10 @@ if (isFast) {
   check("80 分钟是一集电视剧", etaSense(80 * 60e3) === "一集电视剧", etaSense(80 * 60e3));
   check("150 分钟是一场电影", etaSense(150 * 60e3) === "一场电影", etaSense(150 * 60e3));
   check("10 小时是睡一觉", etaSense(10 * 3600e3) === "睡一觉", etaSense(10 * 3600e3));
-  check("47 分钟同时显示数字和参照", fmtEta(47 * 60e3) === "约 47 分 · 一集电视剧", fmtEta(47 * 60e3));
-  check("8 秒同时显示数字和参照", fmtEta(8e3) === "约 8 秒 · 一眨眼", fmtEta(8e3));
+  check("47 分钟同时显示数字和参照", fmtEta(47 * 60e3) === "约 47 分钟，一集电视剧", fmtEta(47 * 60e3));
+  check("8 秒同时显示数字和参照", fmtEta(8e3) === "约 8 秒，一眨眼", fmtEta(8e3));
   check("不足 1 秒仍不显示", fmtEta(500) === "", fmtEta(500));
-  check("宽度不足可悬停看完整副行", /subEl\.title = subEl\.textContent/.test(src));
+  check("不再用 title 兜底完整副行", !/subEl\.title =/.test(src));
   check("首轮快速提交也给出 ETA 下限", /Math\.max\(1100, remaining \/ \(p\.sectionSec \/ elapsed\)\)/.test(src));
 }
 

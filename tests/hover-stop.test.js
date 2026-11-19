@@ -10,7 +10,7 @@ const has = (s) => src.includes(s);
 const results = [];
 const check = (name, cond, extra) => results.push([name, !!cond, extra]);
 
-check("版本升级到 0.0.20", has("// @version      0.0.20"));
+check("版本升级到 0.0.21", has("// @version      0.0.21"));
 check("按钮包含停止文案节点", has('class="${prefix}-stoplabel"'));
 check("停止文案默认隐藏", has(".${prefix}-stoplabel{display:none"));
 check("运行态由 data-running 标记", has('btnStart.dataset.running = state2.running && !state2.stopFlag ? "1" : "0";'));
@@ -24,9 +24,9 @@ check(
 );
 check("无 hover 设备默认显示停止", has("@media (hover:none)"));
 check(
-  "运行中默认文案是进度",
-  has("state2.running ? `\\u8FDB\\u884C\\u4E2D${pctTxt}`"),
-  "expected: \\u8FDB\\u884C\\u4E2D${pctTxt}",
+  "运行中默认文案是学习状态",
+  has("label = `学习中${pctText}`"),
+  "expected: 学习中${pctText}",
 );
 check(
   "运行中不再直接把停止写进默认文案",
@@ -34,11 +34,15 @@ check(
 );
 check(
   "停止文案仍保留百分比",
-  has('if (stopEl) stopEl.textContent = state2.running && !state2.stopFlag ? `\\u23F8 \\u505C\\u6B62${hasProg ? ` ${pct}%` : ""}` : "";'),
+  has('const stopText = `停止${pctText}`;'),
 );
 check(
   "停止中固定文案不变",
-  has('state2.stopFlag && state2.running ? "\\u23F8 \\u505C\\u6B62\\u4E2D\\u2026"'),
+  has('label = "正在停止…"') && has("disabled = true"),
+);
+check(
+  "可访问名称包含停止动作",
+  has('，${stopText}'),
 );
 
 for (const [name, ok, extra] of results) {

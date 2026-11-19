@@ -33,7 +33,7 @@ web
 
 - 运行在 `mooc.ctt.cn` 页面内，`@match https://mooc.ctt.cn/*`，`@run-at document-start`，`@noframes`。
 - 用户需先在浏览器正常登录；Chrome 138 起还需在扩展详情里打开「允许运行用户脚本」，否则脚本不执行且不报错。
-- 启动入口为右下角悬浮面板的「执行学习任务」。停在课程/专题详情页时只处理当前一门；否则拉取「我的任务」列表逐课推进。
+- 启动入口为右下角悬浮面板的「开始本课程」或「开始全部任务」。停在课程/专题详情页时只处理当前一门；否则拉取「我的任务」列表逐课推进。
 - 令牌来源：`localStorage.token` 拼 `Bearer__<access_token>`（双下划线），或挂钩页面自身的 `XMLHttpRequest` / `fetch` 截 `Bearer` 头；遇到 401 或 `errorCode ∈ {90901, 90902}` 时回读 localStorage 重试一次，失败则停下并提示重新登录。
 - 全部处理完且非配额耗尽时，2 秒后自动刷新页面，让面板落到新值。
 - 无人值守支持油猴菜单「自动续跑」；快刷支持菜单设置单档秒数（≥30）。
@@ -48,12 +48,12 @@ web
 - 平台开启 `enableUnique=1` 时检测多端同时学习；同一账号不得在多设备、多浏览器同时跑。
 - 同页互斥、跨标签页 45 秒防多开；两个脚本同时启用会直接拒启动。
 - 不收集、不保存账号密码，不调用任何登录接口。
-- 当前版本 `0.0.16`；零依赖回归测试在 `tests/`，`npm test` 与 4 矩阵 CI 覆盖语法与测试。
+- 当前版本 `0.0.21`；零依赖回归测试在 `tests/`，`npm test` 与 4 矩阵 CI 覆盖语法与测试。
 - 平台规则与接口随时可能收紧：`createTime` 改为服务端时钟或接口变更会导致方案失效。
 
 ## Brand Commitments
 
-- 名称固定为「烟草网络学院 · 学习助手」，两个模式分别叫「⚡ 快速刷课学习助手」与「▶ 无人值守学习助手」。
+- 名称固定为「烟草网络学院 · 学习助手」，两个模式分别叫「快速学习助手」与「自动学习助手」。
 - 对外一律标注**非官方工具**与风险自担；不得宣称官方背书。
 - 用途边界固定：仅供个人账号的学习进度管理与协议研究；不得用于代刷、售卖或商业用途。
 - 语气直陈代价与边界：README 与发布页明确写清时间差、静默丢弃、风控、互斥与失效条件。
@@ -63,8 +63,8 @@ web
 - `C:\Users\user\Desktop\tobacco-mooc-study\README.md`：产品说明、模式对比、机制、接口清单、边界风险。
 - `C:\Users\user\Desktop\tobacco-mooc-study\docs\tobacco-mooc-fast.additional-info.md`：快刷发布页文案。
 - `C:\Users\user\Desktop\tobacco-mooc-study\docs\tobacco-mooc-unattended.additional-info.md`：无人值守发布页文案。
-- `C:\Users\user\Desktop\tobacco-mooc-study\userscript\tobacco-mooc-fast.user.js`：快刷实现，版本 0.0.16。
-- `C:\Users\user\Desktop\tobacco-mooc-study\userscript\tobacco-mooc-unattended.user.js`：无人值守实现，版本 0.0.16。
+- `C:\Users\user\Desktop\tobacco-mooc-study\userscript\tobacco-mooc-fast.user.js`：快刷实现，版本 0.0.21。
+- `C:\Users\user\Desktop\tobacco-mooc-study\userscript\tobacco-mooc-unattended.user.js`：无人值守实现，版本 0.0.21。
 - `C:\Users\user\Desktop\tobacco-mooc-study\assets\readme\hero.svg`、`pacing.svg`、`flow.svg`：官方示意图。
 - `C:\Users\user\Desktop\tobacco-mooc-study\assets\shots\live-16-panel-running.png`、`live-17-panel-unattended.png`：实机面板截图。
 - `C:\Users\user\Desktop\tobacco-mooc-study\tests\`：零依赖回归测试。

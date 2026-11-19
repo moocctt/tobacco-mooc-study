@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.21 — 2026-11-19
+
+### 新功能
+
+- **ui**: 优化面板文案与视觉，并恢复导航栏取色 (#31) ([6f569a8](https://github.com/moocctt/tobacco-mooc-study/commit/6f569a85a304eb449b0c4e22046a4f590937a279))
+
 ## 0.0.20 — 2026-11-19
 
 ### 修复

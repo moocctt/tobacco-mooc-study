@@ -2,6 +2,10 @@
 
 同样跑在 `mooc.ctt.cn`，同样复用你自己的登录态，但它**只驱动页面，不代报进度**：
 
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/readme/hero.svg" width="100%" alt="烟草网络学院学习助手：两个油猴脚本，左侧为快速学习模式面板，右侧为自动学习模式面板">
+</p>
+
 - 真实打开课件、真实播放，学时由平台的播放器自己记；
 - 一个上报请求都不发——`start-progress`、`video-progress`、`doc-progress` 全不碰；
 - 非视频小节（文档、外链、图像）只负责打开，然后等平台自己记上。
@@ -34,19 +38,7 @@
 
 ## 面板与菜单
 
-<p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/readme/hero.svg" width="100%" alt="两个脚本的悬浮面板对照，右侧为自动学习模式">
-</p>
-
-<p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/readme/pacing.svg" width="100%" alt="节奏对比：快速刷课约 5 分钟拿满一门 4 学时课的学时，无人值守下学时与真实时间 1:1 增长">
-</p>
-
 面板可拖拽、可折叠，位置和折叠状态记忆在本机。暖纸底、强调色取自宿主导航栏，没有毛玻璃和阴影。从上到下三块：
-
-<p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-21-panel-unattended.png" width="360" alt="自动学习面板运行中：暖纸底、强调色跟随导航栏的按钮填充到 45%，副行显示已播放时长和体感剩余时间">
-</p>
 
 - **进度区**（按钮上方）：课程名、`小节 1/4，课程 2/3`、当前小节。
 - **按钮**：既是操作入口也是进度条，未完成部分压暗，已完成部分从左往右填充，文字给出状态与百分比：
@@ -58,12 +50,20 @@
 
 标题栏右侧仍显示状态与百分比（如 `学习中 45%`）。未登录时按钮显示 `去登录`，点击进入登录页，不会空等。
 
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-17-panel-unattended.png" width="360" alt="自动学习面板运行中：暖纸底、强调色跟随导航栏的按钮按进度填充，按钮显示停止与百分比，副行显示已播放时长和体感剩余时间">
+</p>
+
 | 油猴菜单项               | 作用                                                 |
 | :----------------------- | :--------------------------------------------------- |
 | 显示/隐藏面板            | 面板被收起来了                                       |
 | 自动续跑: 开/关（当前…） | 刷新或翻页后自动继续，默认**关**；打开会重载一次页面 |
 
 ## 节奏与保活
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/readme/pacing.svg" width="100%" alt="节奏对比：快速刷课约 5 分钟拿满一门 4 学时课的学时，无人值守下学时与真实时间 1:1 增长">
+</p>
 
 | 项目              | 值                                                          |
 | :---------------- | :---------------------------------------------------------- |

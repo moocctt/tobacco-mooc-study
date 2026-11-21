@@ -3,6 +3,14 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 未发布
+
+> 已合并但尚未升版（当前发布版为 0.0.22）。
+
+### 文档
+
+- 优化截图位置并替换运行态截图 ([37d01fa](https://github.com/moocctt/tobacco-mooc-study/commit/37d01faab4d4d252669a133255c126c47d49b232))
+
 ## 0.0.22 — 2026-11-21
 
 ### 修复

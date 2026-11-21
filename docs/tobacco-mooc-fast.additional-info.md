@@ -2,6 +2,10 @@
 
 跑在 `mooc.ctt.cn` 页面里，复用你自己的登录态，把「我的任务」里的必修课程逐小节上报到 100%。
 
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/readme/hero.svg" width="100%" alt="烟草网络学院学习助手：两个油猴脚本，左侧为快速学习模式面板，右侧为自动学习模式面板">
+</p>
+
 它只做一件事：**把每轮上报的时长攒得比真实时间快**。开始学习时把 `createTime` 挪到过去
 （当前时间减去 `单档秒数 + 60~300s`），服务端按日志年龄算额度，于是每一轮都有整档额度可用；
 轮与轮之间只歇 0.6~1.6 秒，而不是真的等满一轮时长。所以一门 4 学时的课几分钟就走完。
@@ -32,16 +36,7 @@ token 不用填，账号密码也不用填。脚本只借用**你已经在网页
 
 ## 面板与菜单
 
-<p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/readme/hero.svg" width="100%" alt="两个脚本的悬浮面板对照，右侧为自动学习模式">
-</p>
-
-
 面板可拖拽、可折叠，位置和折叠状态记忆在本机。暖纸底、强调色取自宿主导航栏，没有毛玻璃和阴影。从上到下三块：
-
-<p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-21-panel-fast.png" width="360" alt="快速学习面板运行中：暖纸底、强调色跟随导航栏的按钮填充到 45%，按钮显示学习中 45%，下方是实时日志">
-</p>
 
 - **进度区**（按钮上方）：课程名、`小节 1/4，课程 2/3`、当前小节。
 - **按钮**：既是操作入口也是进度条，未完成部分压暗，已完成部分从左往右填充，文字给出状态与百分比：
@@ -51,6 +46,10 @@ token 不用填，账号密码也不用填。脚本只借用**你已经在网页
 - **日志区**（按钮下方）：滚动保留最近 60 行，时间戳压暗，课程分隔行加粗。
 
 标题栏右侧仍显示状态与百分比（如 `学习中 45%`）。未登录时按钮显示 `去登录`，点击进入登录页，不会空等。
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-16-panel-running.png" width="360" alt="快速学习面板运行中：暖纸底、强调色跟随导航栏的按钮按进度填充，按钮显示停止与百分比，下方是实时日志">
+</p>
 
 | 油猴菜单项 | 作用 |
 | :-- | :-- |

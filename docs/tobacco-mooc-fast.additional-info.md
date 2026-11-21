@@ -47,8 +47,10 @@ token 不用填，账号密码也不用填。脚本只借用**你已经在网页
 
 标题栏右侧仍显示状态与百分比（如 `学习中 45%`）。未登录时按钮显示 `去登录`，点击进入登录页，不会空等。
 
+下图是真实账号登录后、脚本已读取到令牌的初始态；截图只保留面板，不含账号、姓名与令牌信息。
+
 <p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-16-panel-running.png" width="360" alt="快速学习面板运行中：暖纸底、强调色跟随导航栏的按钮按进度填充，按钮显示停止与百分比，下方是实时日志">
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-22-panel-fast.png" width="360" alt="快速学习面板初始态：暖纸底、橙色按钮显示开始本课程，日志区显示已读取登录状态">
 </p>
 
 | 油猴菜单项 | 作用 |

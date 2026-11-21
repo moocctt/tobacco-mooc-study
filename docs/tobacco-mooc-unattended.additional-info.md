@@ -50,10 +50,30 @@
 
 标题栏右侧仍显示状态与百分比（如 `学习中 45%`）。未登录时按钮显示 `去登录`，点击进入登录页，不会空等。
 
-下图是真实账号登录后、脚本已读取到令牌的初始态；截图只保留面板，不含账号、姓名与令牌信息。
+真实账号实测的四个阶段如下。截图只保留面板，已裁掉页面背景带入的头像/导航残影，不含账号、姓名、令牌或密码。
+
+**① 待机：已读取登录状态**
 
 <p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-23-panel-unattended.png" width="360" alt="自动学习面板初始态：暖纸底、绿色按钮显示开始全部任务，日志区显示已读取登录状态">
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-27-unattended-ready.png" width="360" alt="无人值守面板待机态：绿色按钮显示开始全部任务，日志显示已读取登录状态">
+</p>
+
+**② 识别课程页：按钮切到开始本课程**
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-28-unattended-course.png" width="360" alt="无人值守面板识别课程页：绿色按钮显示开始本课程，日志显示已读取登录状态">
+</p>
+
+**③ 播放中：副行显示时长与体感剩余时间**
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-29-unattended-playing.png" width="360" alt="无人值守面板播放中：副行显示已播放时长与体感剩余时间，日志显示播放与 60% 进度">
+</p>
+
+**④ 进度更新：日志按 20% 打点**
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-30-unattended-progress.png" width="360" alt="无人值守面板进度更新：按钮显示学习中 2%，日志显示 80% 进度">
 </p>
 
 | 油猴菜单项               | 作用                                                 |

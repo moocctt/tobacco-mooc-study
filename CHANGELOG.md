@@ -9,7 +9,7 @@
 
 ### 文档
 
-- 补充真实测试多阶段截图并脱敏 ([918f09b](https://github.com/moocctt/tobacco-mooc-study/commit/918f09bfafacfe84c1915dd4fdcab699b3f35825))
+- 补充真实测试多阶段截图并脱敏 (#35) ([f1ef68c](https://github.com/moocctt/tobacco-mooc-study/commit/f1ef68cdfc6cbb2c4a77add8c88965ed56a0ec1d))
 - 使用真实账号截图并脱敏 (#34) ([5b0e439](https://github.com/moocctt/tobacco-mooc-study/commit/5b0e43977bc0136b48b8a4c7de60230e7c8844fe))
 - 优化截图位置并替换运行态截图 (#33) ([da969ce](https://github.com/moocctt/tobacco-mooc-study/commit/da969ce5d4768477f1ea74af7327282573bd38c9))
 

@@ -3,6 +3,12 @@
 > 本文件由 `scripts/changelog.js` 从 git 提交历史自动生成，请勿手工编辑。
 > 版本号取自 userscript 的 `@version`：脚本靠它触发脚本站更新，所以升版之后的改动归入「未发布」。
 
+## 0.0.22 — 2026-11-21
+
+### 修复
+
+- **auth**: 占位登录态不再被当成已登录 (#32) ([9cd3601](https://github.com/moocctt/tobacco-mooc-study/commit/9cd3601be87c546f0ce20d1233b4b58dec54c224))
+
 ## 0.0.21 — 2026-11-19
 
 ### 新功能

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         烟草网络学院 · 无人值守学习助手
 // @namespace    https://github.com/moocctt/tobacco-mooc-study
-// @version      0.0.21
+// @version      0.0.22
 // @license      MIT
 // @homepageURL  https://github.com/moocctt/tobacco-mooc-study
 // @supportURL   https://github.com/moocctt/tobacco-mooc-study/issues
@@ -24,14 +24,35 @@
     let token = null;
     let tokenOrigin = "manual";
     let tokenWaiters = [];
+    const PLACEHOLDERS = /^(?:bearer[_\s-]*)?(?:null|undefined|nan|none|placeholder|dummy|fake|unknown|test|token|empty|true|false|0|bearer|-+)$/i;
+    function usableCredential(v) {
+      if (typeof v !== "string") return "";
+      const s = v.trim();
+      if (!s || PLACEHOLDERS.test(s)) return "";
+      if (!/[A-Za-z0-9]/.test(s)) return "";
+      return s;
+    }
+    function bearerHeaderToken(v) {
+      const m = /^Bearer\s+(.+)$/i.exec(String(v || "").trim());
+      if (!m) return "";
+      const cred = usableCredential(m[1]);
+      return cred ? `Bearer ${cred}` : "";
+    }
     function setToken(v, origin = "manual") {
-      if (!v || v === token) return;
-      token = v;
+      const next = origin === "hook" ? bearerHeaderToken(v) : (typeof v === "string" ? v.trim() : "");
+      if (!next || next === token) return;
+      token = next;
       tokenOrigin = origin;
       log("已读取登录状态");
       const ws = tokenWaiters;
       tokenWaiters = [];
       ws.forEach((w) => w());
+    }
+    function clearToken(reason) {
+      if (!token) return;
+      token = null;
+      tokenOrigin = "manual";
+      if (reason) log(reason);
     }
     function waitToken(ms = 3e4) {
       if (token) return Promise.resolve();
@@ -58,8 +79,12 @@
         const raw = st.getItem("token");
         if (!raw) return false;
         const obj = JSON.parse(raw);
-        if (!obj || !obj.access_token) return false;
-        const v = `${obj.token_type || "Bearer"}__${obj.access_token}`;
+        if (!obj) return false;
+        const access = usableCredential(obj.access_token);
+        if (!access) return false;
+        const typeRaw = typeof obj.token_type === "string" ? obj.token_type.trim() : "";
+        const type = !typeRaw || /^Bearer$/i.test(typeRaw) ? "Bearer" : typeRaw;
+        const v = `${type}__${access}`;
         if (v === token) return false;
         setToken(v, "storage");
         return true;
@@ -75,7 +100,7 @@
       const origSetHeader = XHR.prototype.setRequestHeader;
       XHR.prototype.setRequestHeader = function(k, v) {
         try {
-          if (/^authorization$/i.test(k) && /^Bearer/.test(String(v))) setToken(String(v), "hook");
+          if (/^authorization$/i.test(k)) setToken(String(v), "hook");
         } catch {
         }
         return origSetHeader.call(this, k, v);
@@ -86,14 +111,14 @@
           if (h) {
             const get = (k) => typeof h.get === "function" ? h.get(k) : h[k];
             const v = get("Authorization") || get("authorization");
-            if (v && /^Bearer/.test(String(v))) setToken(String(v), "hook");
+            if (v) setToken(String(v), "hook");
           }
         } catch {
         }
         return origFetch.apply(this, arguments);
       };
     }
-    return { getToken: () => token, tokenOrigin: () => tokenOrigin, setToken, waitToken, tokenFromStorage, installHooks };
+    return { getToken: () => token, tokenOrigin: () => tokenOrigin, setToken, clearToken, waitToken, tokenFromStorage, installHooks };
   }
 
   // src/constants.js
@@ -1343,8 +1368,22 @@ ${P} #${prefix}-log::-webkit-scrollbar-track{background:transparent}
     } catch {
     }
   }, 12e3);
+  async function verifyStoredLogin() {
+    if (!hunter.getToken() || isAuthPage(location.hash)) return;
+    const verifier = createApi({ hunter, log: () => {
+    } });
+    try {
+      await verifier.req("GET", API.TASKS);
+    } catch (e) {
+      if (e && e.auth) {
+        hunter.clearToken("占位登录态不可用，请在页面重新登录后再试");
+        panel.ui();
+      }
+    }
+  }
   (function boot() {
     hunter.tokenFromStorage();
+    verifyStoredLogin();
     const mountPanel = () => { if (!isAuthPage(location.hash)) panel.mount(); };
     if (document.documentElement) mountPanel();
     else document.addEventListener("DOMContentLoaded", mountPanel, { once: true });

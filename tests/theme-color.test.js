@@ -11,7 +11,7 @@ const isFast = path.basename(file).includes("fast");
 const results = [];
 const check = (name, cond, extra) => results.push([name, !!cond, extra]);
 
-check("版本升级到 0.0.21", has("// @version      0.0.21"));
+check("版本升级到 0.0.22", has("// @version      0.0.22"));
 check("保留暖纸底", has("--p-bg:#fbf8f3"));
 check("保留平面面板", !has("backdrop-filter:blur"));
 check("存在导航栏取色函数", has("function headerColor(fallback)"));

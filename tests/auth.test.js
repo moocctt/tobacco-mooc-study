@@ -208,6 +208,52 @@ const check = (name, cond, extra) => results.push([name, !!cond, extra]);
   check("H 钩子新令牌不被 localStorage 降级", hunterH.getToken() === "Bearer hook-fresh", String(hunterH.getToken()));
   check("H 钩子令牌鉴权失败只请求一次就抛 auth", callsH === 1 && errH && errH.auth === true, JSON.stringify({ callsH, err: errH && errH.message }));
 
+  // I: localStorage 里的占位 access_token 不能让面板误以为已登录
+  for (const placeholder of ["null", "undefined", "NaN", "placeholder", "Bearer"]) {
+    const logsI = [];
+    const hunterI = makeMod().createTokenHunter({
+      log: (m) => logsI.push(m),
+      storage: storageWith({ token_type: "Bearer", access_token: placeholder }),
+    });
+    const gotI = hunterI.tokenFromStorage();
+    check(
+      `I 占位 access_token=${placeholder} 不被当成登录态`,
+      gotI === false && !hunterI.getToken() && !logsI.some((m) => /已读取登录状态/.test(m)),
+      JSON.stringify({ gotI, token: hunterI.getToken(), logs: logsI }),
+    );
+  }
+
+  // J: 页面初始请求里的占位 Authorization 头也不能被当成真实令牌
+  const logsJ = [];
+  const hunterJ = makeMod().createTokenHunter({ log: (m) => logsJ.push(m), storage: storageWith(null) });
+  function PlaceholderXHR() {}
+  PlaceholderXHR.prototype.setRequestHeader = function () {};
+  hunterJ.installHooks({
+    win: { XMLHttpRequest: PlaceholderXHR, fetch: () => Promise.resolve({ ok: true }) },
+    XMLHttpRequest: PlaceholderXHR,
+    fetch: () => Promise.resolve({ ok: true }),
+  });
+  for (const header of ["Bearer", "Bearer ", "Bearer null", "Bearer undefined", "Bearer NaN", "Bearer placeholder"]) {
+    new PlaceholderXHR().setRequestHeader("authorization", header);
+  }
+  check(
+    "J 占位 Authorization 头不被当成登录态",
+    !hunterJ.getToken() && !logsJ.some((m) => /已读取登录状态/.test(m)),
+    JSON.stringify({ token: hunterJ.getToken(), logs: logsJ }),
+  );
+
+  // K: 校验失败后能清掉旧登录态，后续真实令牌仍可正常写入
+  const logsK = [];
+  const hunterK = makeMod().createTokenHunter({
+    log: (m) => logsK.push(m),
+    storage: storageWith({ token_type: "Bearer", access_token: "real-token" }),
+  });
+  hunterK.setToken("Bearer__stale");
+  hunterK.clearToken("占位登录态不可用");
+  check("K clearToken 清空登录态", !hunterK.getToken(), String(hunterK.getToken()));
+  check("K clearToken 写出原因", logsK.some((m) => /占位登录态不可用/.test(m)), JSON.stringify(logsK));
+  check("K 清空后仍可读取真实令牌", hunterK.tokenFromStorage() === true && hunterK.getToken() === "Bearer__real-token", String(hunterK.getToken()));
+
   let pass = 0;
   for (const [name, ok, extra] of results) {
     console.log(`${ok ? "PASS" : "FAIL"}  ${name}${extra && !ok ? "  → " + extra : ""}`);

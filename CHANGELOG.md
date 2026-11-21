@@ -9,6 +9,7 @@
 
 ### 文档
 
+- 使用真实账号截图并脱敏 ([1b2ca83](https://github.com/moocctt/tobacco-mooc-study/commit/1b2ca8348c5144c26998348d949134cc161e1048))
 - 优化截图位置并替换运行态截图 (#33) ([da969ce](https://github.com/moocctt/tobacco-mooc-study/commit/da969ce5d4768477f1ea74af7327282573bd38c9))
 
 ## 0.0.22 — 2026-11-21

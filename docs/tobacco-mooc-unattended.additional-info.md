@@ -50,8 +50,10 @@
 
 标题栏右侧仍显示状态与百分比（如 `学习中 45%`）。未登录时按钮显示 `去登录`，点击进入登录页，不会空等。
 
+下图是真实账号登录后、脚本已读取到令牌的初始态；截图只保留面板，不含账号、姓名与令牌信息。
+
 <p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-17-panel-unattended.png" width="360" alt="自动学习面板运行中：暖纸底、强调色跟随导航栏的按钮按进度填充，按钮显示停止与百分比，副行显示已播放时长和体感剩余时间">
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-23-panel-unattended.png" width="360" alt="自动学习面板初始态：暖纸底、绿色按钮显示开始全部任务，日志区显示已读取登录状态">
 </p>
 
 | 油猴菜单项               | 作用                                                 |

@@ -9,7 +9,7 @@
 
 ### 文档
 
-- 优化截图位置并替换运行态截图 ([37d01fa](https://github.com/moocctt/tobacco-mooc-study/commit/37d01faab4d4d252669a133255c126c47d49b232))
+- 优化截图位置并替换运行态截图 (#33) ([da969ce](https://github.com/moocctt/tobacco-mooc-study/commit/da969ce5d4768477f1ea74af7327282573bd38c9))
 
 ## 0.0.22 — 2026-11-21
 

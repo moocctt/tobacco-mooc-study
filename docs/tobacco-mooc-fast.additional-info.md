@@ -47,10 +47,24 @@ token 不用填，账号密码也不用填。脚本只借用**你已经在网页
 
 标题栏右侧仍显示状态与百分比（如 `学习中 45%`）。未登录时按钮显示 `去登录`，点击进入登录页，不会空等。
 
-下图是真实账号登录后、脚本已读取到令牌的初始态；截图只保留面板，不含账号、姓名与令牌信息。
+真实账号实测的三个阶段如下。截图只保留面板，已裁掉页面背景带入的头像/导航残影，不含账号、姓名、令牌或密码。
+
+**① 待机：已读取登录状态**
 
 <p>
-  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-22-panel-fast.png" width="360" alt="快速学习面板初始态：暖纸底、橙色按钮显示开始本课程，日志区显示已读取登录状态">
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-24-fast-ready.png" width="360" alt="快刷面板待机态：橙色按钮显示开始全部任务，日志显示已读取登录状态">
+</p>
+
+**② 学习中：进度条与实时日志**
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-25-fast-running.png" width="360" alt="快刷面板运行中：按钮显示学习中 41%，进度区显示课程小节与第 15 轮，日志显示逐轮已入账">
+</p>
+
+**③ 完成：复位等待下一门**
+
+<p>
+  <img src="https://raw.githubusercontent.com/moocctt/tobacco-mooc-study/main/assets/shots/live-26-fast-done.png" width="360" alt="快刷课程完成后面板复位：按钮显示开始本课程，日志只保留已读取登录状态">
 </p>
 
 | 油猴菜单项 | 作用 |
